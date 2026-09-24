@@ -577,10 +577,23 @@ function render(){
  const actor=chars[battle.turn];
  const pen=actor.state.intimidated?10:0;
  const setDetail=(id,text)=>{const el=$(id);if(el)el.textContent=text};
- setDetail("analyze-detail",`判定 ${clamp(specialSkill(actor,"int")-pen)}%${pen?"（威圧 -10）":""}`);
- setDetail("taunt-detail",`判定 ${clamp(specialSkill(actor,"app")-pen)}%${pen?"（威圧 -10）":""}`);
- setDetail("intimidate-detail",`判定 ${clamp(specialSkill(actor,"pow")-pen)}%${pen?"（威圧 -10）":""}`);
- const c=cur(),w=selected(c),g=grapple(c);$("attack-chance").textContent=`判定 ${atkSkill(c)}%`;$("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage}`;$("heavy-chance").textContent=`判定 ${atkSkill(c,"heavy")}%`;$("heavy-detail").textContent=`${w.name} / ${w.damage}+1D4`;$("grapple-chance").textContent=g?`判定 ${g.skill}%`:"技能なし";$("grapple-detail").textContent=g?`${g.damage} / STR対抗`:"組み付きなし";$("heal-chance").textContent=`判定 ${c.skills.firstAid}%`;
+ const modText=(mods)=>mods.length?`（${mods.join(" / ")}）`:"";
+ const activeMods=pen?["威圧 -10"]:[];
+ setDetail("analyze-detail",`判定 ${clamp(specialSkill(actor,"int")-pen)}% ${modText(activeMods)}`.trim());
+ setDetail("taunt-detail",`判定 ${clamp(specialSkill(actor,"app")-pen)}% ${modText(activeMods)}`.trim());
+ setDetail("intimidate-detail",`判定 ${clamp(specialSkill(actor,"pow")-pen)}% ${modText(activeMods)}`.trim());
+ const c=cur(),w=selected(c),g=grapple(c);
+ const atkMods=[];
+ if(c.state.attackBonus)atkMods.push("分析 +20");
+ if(c.state.spirit>=3)atkMods.push("闘志 +10");
+ if(c.state.taunted)atkMods.push("挑発 -10");
+ if(c.state.intimidated)atkMods.push("威圧 -10");
+ const normalChance=clamp(atkSkill(c)+(c.state.attackBonus?20:0)+(c.state.spirit>=3?10:0)-(c.state.taunted?10:0)-(c.state.intimidated?10:0));
+ const heavyMods=[...atkMods,"強攻撃 -5"];
+ const heavyChance=clamp(atkSkill(c)+(c.state.attackBonus?20:0)+(c.state.spirit>=3?10:0)-(c.state.taunted?10:0)-(c.state.intimidated?10:0)-5);
+ $("attack-chance").textContent=`判定 ${normalChance}% ${modText(atkMods)}`.trim();
+ $("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage}`;
+ $("heavy-chance").textContent=`判定 ${heavyChance}% ${modText(heavyMods)}`.trim();$("heavy-detail").textContent=`${w.name} / ${w.damage}+1D4`;$("grapple-chance").textContent=g?`判定 ${clamp(g.skill-pen)}% ${modText(pen?["威圧 -10"]:[])}`.trim():"技能なし";$("grapple-detail").textContent=g?`${g.damage} / STR対抗`:"組み付きなし";$("heal-chance").textContent=`判定 ${clamp(c.skills.firstAid-pen)}% ${modText(pen?["威圧 -10"]:[])}`.trim();
  $("analyze-chance").textContent=`INT×5 ${specialSkill(c,"int")}%`;
  $("taunt-chance").textContent=`APP×5 ${specialSkill(c,"app")}%`;
  $("intimidate-chance").textContent=`POW×5 ${specialSkill(c,"pow")}%`;
@@ -602,7 +615,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.51");
+setOnlineStatus("オンライン：操作できます / BUILD 2.52");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -635,7 +648,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.51")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.52")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
