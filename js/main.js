@@ -59,10 +59,15 @@ $("save-char").addEventListener("click",saveP1);
 $("save-p2").addEventListener("click",saveP2);
 
 $("local-start").addEventListener("click",()=>{
- saveP1();saveP2();
- netMode="local";myRole=0;
- initBattle([freshCharacter(myCharacter),freshCharacter(p2Character)]);
- showBattle();
+ try{
+   saveP1();saveP2();
+   netMode="local";myRole=0;
+   initBattle([freshCharacter(myCharacter),freshCharacter(p2Character)]);
+   showBattle();
+ }catch(err){
+   console.error(err);
+   toast("対戦開始エラー：" + (err?.message||err));
+ }
 });
 $("host-btn").addEventListener("click",()=>{saveP1();createRoom()});
 $("join-btn").addEventListener("click",()=>{saveP1();joinRoom($("room-code").value.trim())});

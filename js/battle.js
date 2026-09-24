@@ -65,7 +65,19 @@ function reaction(type){
  d.state.rp-=type==="dodge"?2:1;let skill=type==="dodge"?effectiveDodge(d,p.observed):effectiveCounter(d),r=rollD100(),z=judgeRoll(r,skill);log(`${type==="dodge"?"🛡 回避":"⚔ 反撃"} ${r}/${skill} → ${z.text}`);
  if(z.type==="oneCritical"){d.state.attackBonus+=20;log("次の攻撃+20。","buff")}
  if(z.type==="hundredFumble"){d.state.rp=0;damage(4);return endReaction()}if(z.type==="fumble"){damage(2);return endReaction()}
- if(z.rank>=p.result.rank){if(type==="dodge"){fx(p.defenderIndex,"dodge")}log("攻撃を回避！");else if(z.rank>=3)counterDamage(z);else log("攻撃をしのいだ。")}else damage();endReaction()
+ if(z.rank>=p.result.rank){
+   if(type==="dodge"){
+     fx(p.defenderIndex,"dodge");
+     log("攻撃を回避！");
+   }else if(z.rank>=3){
+     counterDamage(z);
+   }else{
+     log("攻撃をしのいだ。");
+   }
+ }else{
+   damage();
+ }
+ endReaction()
 }
 function rawDamage(p){let z=p.result,w=p.weapon||{damage:"1d4+1"};let base=rollDamageExpr(w.damage);if(p.type==="heavy")base+=rollDice(4);if(z.type==="critical")base*=2;if(z.type==="oneCritical")base+=Math.ceil(damageExpected(w.damage));return base}
 function damage(extra=0){let p=battle.pending,d=characters[p.defenderIndex],n=rawDamage(p)+p.spirit+extra;if(d.state.guard){if(p.type==="heavy"){d.state.guard=false;log("💥 ガードブレイク！","special")}else{n=Math.max(0,n-2);d.state.guard=false;log("🛡 ダメージ-2。","buff")}}d.hp=Math.max(0,d.hp-n);fx(p.defenderIndex,"hit");log(`${p.weapon?.name||"攻撃"}：${p.weapon?.damage||""} → ${n}ダメージ！`,"damage");d.hp=Math.max(0,d.hp);checkEnd();if(p.weapon?.kind==="grapple"&&!battle.gameOver)resolveStrContest(p)}
