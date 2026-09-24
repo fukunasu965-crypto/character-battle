@@ -161,10 +161,9 @@ function setupConnection(c,hostSide){
  else conn.on("open",beginHandshake);
 }
 
-function cleanRoomCode(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
 function hostOnline(){
  try{
-  const code=cleanRoomCode($("host-code").value);
+  const code=String($("host-code").value||"").replace(/\D/g,"").slice(0,4);
   if(code.length!==4)throw new Error("4桁の数字を入力してください");
   $("host-code").value=code;
   save("p1");
@@ -187,7 +186,7 @@ function hostOnline(){
 }
 function joinOnline(){
  try{
-  const code=cleanRoomCode($("join-code").value);
+  const code=String($("join-code").value||"").replace(/\D/g,"").slice(0,4);
   if(code.length!==4)throw new Error("4桁の数字を入力してください");
   $("join-code").value=code;
   save("p1");
@@ -324,11 +323,11 @@ function render(){
 }
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{const pl=btn.dataset.player;document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));$(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");$(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json")}));
 $("parse-json").addEventListener("click",()=>importJson("p1"));$("p2-parse-json").addEventListener("click",()=>importJson("p2"));$("save-char").addEventListener("click",()=>save("p1"));$("save-p2").addEventListener("click",()=>save("p2"));$("local-start").addEventListener("click",start);
-$("host-code").addEventListener("input",e=>e.target.value=cleanRoomCode(e.target.value));
-$("join-code").addEventListener("input",e=>e.target.value=cleanRoomCode(e.target.value));
+$("host-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
+$("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.11");
+setOnlineStatus("オンライン：操作できます / BUILD 2.15");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 $("rematch-btn").addEventListener("click",()=>{
