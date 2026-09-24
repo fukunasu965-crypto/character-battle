@@ -85,3 +85,6 @@ v2.10: bridge準備エラーの根本原因を修正。online-bootstrap.jsがapp
 
 
 v2.12: 接続後にバトルへ移行しない問題を修正。DataConnectionのdata listenerを先に登録し、open済み/未openの両方で一度だけhandshakeを開始。ホストがrequest-character、参加者がcharacterを送り、ホストがP2として受信後にbattle生成→state同期→両画面をbattle-screenへ移行。
+
+
+v2.13: PLAYER 2の操作が無視される問題を修正。参加者のintentをホストが代理実行する際、ホスト自身のPLAYER1操作権チェックで弾かれていた。remoteIntentフラグで正規のP2 intentのみホスト権威側で実行。スマホ向けに戦闘ボタンのタップ領域も拡大。

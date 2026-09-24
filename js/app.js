@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
 let p1=null,p2=null,chars=[],battle=null;
-let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false;
+let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false,remoteIntent=false;
 
 function toast(t){const x=$("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 function num(id){return Number($(id).value)||0}
@@ -124,7 +124,10 @@ function setupConnection(c,hostSide){
     if(battle?.gameOver)return;
     const actor=battle.pending?battle.pending.defender:battle.turn;
     if(actor!==1)return;
-    applyingNet=true;action(msg.action);applyingNet=false;syncState();
+    remoteIntent=true;
+    try{ action(msg.action); }
+    finally{ remoteIntent=false; }
+    syncState();
    }
    else if(msg.type==="result"){
     showOnlineResult(msg.winnerIndex,myPlayerIndex);
@@ -291,7 +294,7 @@ function react(type){
 }
 function action(id){
  if(!battle||battle.gameOver)return;
- if(netMode==="online"&&!canActHere())return;
+ if(netMode==="online"&&!remoteIntent&&!canActHere())return;
  if(netMode==="online"&&!isHost){sendNet("intent",{action:id});return;}
  if(id==="attack"||id==="heavy")return attack(id);
  if(id==="grapple")return grappleAttack();
