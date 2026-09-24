@@ -34,3 +34,26 @@
 @keyframes heal{0%,100%{transform:none;filter:drop-shadow(0 16px 18px #0008)}50%{transform:translateY(-5px) scale(1.04);filter:drop-shadow(0 0 22px #7dffac)}}
 @keyframes observe{0%,100%{filter:drop-shadow(0 16px 18px #0008)}50%{filter:brightness(1.35) drop-shadow(0 0 20px #ffd36b)}}
 @media(max-width:700px){.portrait-stage{height:190px}.portrait-wrap{height:185px}.commands{grid-template-columns:repeat(2,1fr)!important}}
+
+.p2-import{margin:0 0 16px;padding:12px;border:1px solid var(--line);border-radius:10px}.p2-import textarea{width:100%;min-height:110px;margin:8px 0;resize:vertical}
+
+/* v1.6 battle FX — intentionally strong so actions are visibly animated */
+.portrait-wrap{will-change:transform,filter}
+.portrait-wrap::after{content:"";position:absolute;left:50%;top:42%;width:150px;height:12px;border-radius:999px;opacity:0;pointer-events:none;transform:translate(-50%,-50%) rotate(-22deg);background:linear-gradient(90deg,transparent,#fff,#ffd36b,transparent);filter:blur(1px)}
+.anim-attack::after,.anim-heavy::after{animation:slashFX .48s ease}
+.anim-counter{animation:counterFX .7s ease}
+.anim-counter::after{animation:slashFX .5s ease}
+.anim-brace{animation:braceFX .65s ease}
+.anim-grappleSuccess{animation:grappleSuccessFX .85s ease}
+.anim-bound{animation:boundFX .85s ease}
+.anim-escape{animation:escapeFX .7s ease}
+@keyframes slashFX{0%{opacity:0;transform:translate(-80%,-50%) rotate(-22deg) scaleX(.2)}35%{opacity:1}100%{opacity:0;transform:translate(5%,-50%) rotate(-22deg) scaleX(1.5)}}
+@keyframes counterFX{0%,100%{transform:none}25%{transform:translateX(-20px) scale(.96)}55%{transform:translateX(75px) scale(1.08)}}
+.fighter:last-child .anim-counter{animation:counterFXR .7s ease}
+@keyframes counterFXR{0%,100%{transform:none}25%{transform:translateX(20px) scale(.96)}55%{transform:translateX(-75px) scale(1.08)}}
+@keyframes braceFX{0%,100%{transform:none}40%{transform:scale(.91);filter:brightness(1.35) drop-shadow(0 0 20px #ffb86b)}}
+@keyframes grappleSuccessFX{0%,100%{transform:none}35%{transform:translateX(55px) scale(1.08)}65%{transform:translateX(35px) scale(1.03)}}
+.fighter:last-child .anim-grappleSuccess{animation:grappleSuccessFXR .85s ease}
+@keyframes grappleSuccessFXR{0%,100%{transform:none}35%{transform:translateX(-55px) scale(1.08)}65%{transform:translateX(-35px) scale(1.03)}}
+@keyframes boundFX{0%,100%{transform:none}20%,60%{transform:translateX(-8px) rotate(-3deg) scale(.96)}40%,80%{transform:translateX(8px) rotate(3deg) scale(.96)}}
+@keyframes escapeFX{0%,100%{transform:none}45%{transform:translateY(-15px) scale(1.03);filter:brightness(1.3)}}

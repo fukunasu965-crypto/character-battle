@@ -38,9 +38,15 @@ function grappleAttack(){fx(battle.turn,"grapple");
  battle.pending={attackerIndex:battle.turn,defenderIndex:1-battle.turn,type:"grapple",result:z,observed,spirit:0,weapon:w};log(`${opponent().name}のリアクション。`)
 }
 function resolveStrContest(p){
- let a=characters[p.attackerIndex],d=characters[p.defenderIndex],ar=rollD100(),dr=rollD100(),az=judgeRoll(ar,clamp(a.str)),dz=judgeRoll(dr,clamp(d.str));
- log(`── STR対抗 ──`,"special");log(`${a.name} STR ${a.str} → ${ar}【${az.text}】`);log(`${d.name} STR ${d.str} → ${dr}【${dz.text}】`);
- if(az.rank>dz.rank){d.state.nextApPenalty=1;log(`🤼 拘束成功！ ${d.name}の次ターンAP -1。`,"special")}else log(`拘束失敗。追加効果なし。`)
+ let a=characters[p.attackerIndex],d=characters[p.defenderIndex];
+ let target=clamp(50+(a.str-d.str)*5);
+ let r=rollD100(),z=judgeRoll(r,target);
+ log(`── STR対抗 ──`,"special");
+ log(`${a.name} STR ${a.str} vs ${d.name} STR ${d.str}`);
+ log(`成功値 50 + (${a.str}-${d.str})×5 = ${target}%`);
+ log(`1D100 → ${r}【${z.text}】`);
+ if(z.rank>=3){d.state.nextApPenalty=1;log(`🤼 拘束成功！ ${d.name}の次ターンAP -1。`,"special");fx(p.attackerIndex,"grappleSuccess");fx(p.defenderIndex,"bound")}
+ else {log(`拘束失敗。追加効果なし。`);fx(p.defenderIndex,"escape")}
 }
 function attack(type,cost){fx(battle.turn,type==="heavy"?"heavy":"attack");
  let c=current(),weapon=selectedAttack(c),skill=effectiveAttack(c,type),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;battle.ap-=cost;
@@ -53,6 +59,7 @@ function attack(type,cost){fx(battle.turn,type==="heavy"?"heavy":"attack");
  battle.pending={attackerIndex:battle.turn,defenderIndex:1-battle.turn,type,result:z,observed,spirit,weapon};log(`${opponent().name}のリアクション。`)
 }
 function reaction(type){
+ let _pfx=battle.pending;if(_pfx){if(type==="dodge")fx(_pfx.defenderIndex,"dodge");else if(type==="counter")fx(_pfx.defenderIndex,"counter");else if(type==="take")fx(_pfx.defenderIndex,"brace");}
  let p=battle.pending,d=characters[p.defenderIndex];if(type==="dodge"&&d.state.rp<2)return;if(type==="counter"&&d.state.rp<1)return;
  if(type==="take"){if(p.type!=="heavy"){d.state.spirit=Math.min(3,d.state.spirit+1);log(`🔥 ${d.name} 闘志+1。`,"buff")}damage();return endReaction()}
  d.state.rp-=type==="dodge"?2:1;let skill=type==="dodge"?effectiveDodge(d,p.observed):effectiveCounter(d),r=rollD100(),z=judgeRoll(r,skill);log(`${type==="dodge"?"🛡 回避":"⚔ 反撃"} ${r}/${skill} → ${z.text}`);
