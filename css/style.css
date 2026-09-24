@@ -131,3 +131,16 @@
 @keyframes dieTumbleB{0%{transform:translate(30vw,-22vh) rotateX(0) rotateY(0) rotateZ(0) scale(.62)}50%{transform:translate(-5vw,7vh) rotateX(230deg) rotateY(180deg) rotateZ(-150deg) scale(1.08)}100%{transform:translate(0,0) rotateX(430deg) rotateY(360deg) rotateZ(-320deg) scale(.92)}}
 @keyframes dieLand{0%{transform:scale(1.18) translateY(-18px)}55%{transform:scale(.9) translateY(7px)}100%{transform:scale(1) translateY(0)}}
 @media(max-width:650px){.dice-stage{gap:5vw}.percentile-die{width:31vw}.dice-cinematic-inner{bottom:6vh}}
+
+/* v2.31: unmistakable full-screen roll stage */
+.dice-cinematic{z-index:50000!important;background:rgba(2,3,8,.94)!important}
+.dice-cinematic::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.13),transparent 38%);animation:diceBackdropPulse .65s ease-in-out infinite alternate}
+.dice-stage{z-index:2!important}
+.dice-cinematic-inner{z-index:3!important;border:0!important;background:transparent!important;box-shadow:none!important;backdrop-filter:none!important}
+.percentile-die{filter:drop-shadow(0 24px 28px rgba(0,0,0,.75));}
+.dice-label{font-size:clamp(16px,2vw,26px)!important}
+.dice-target{font-size:clamp(14px,1.6vw,22px)!important}
+.dice-result{font-size:clamp(30px,5vw,68px)!important}
+.dice-cinematic.impact::after{content:"";position:absolute;inset:0;background:white;opacity:0;animation:diceImpactFlash .22s ease-out}
+@keyframes diceBackdropPulse{from{transform:scale(.96);opacity:.55}to{transform:scale(1.04);opacity:1}}
+@keyframes diceImpactFlash{0%{opacity:.34}100%{opacity:0}}

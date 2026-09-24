@@ -368,16 +368,16 @@ function showDiceFx(roll,target,z,label="1D100"){
   if(token!==diceFxToken){clearInterval(spin);return}
   const a=Math.floor(Math.random()*10),b=Math.floor(Math.random()*10);
   td.querySelector("span").textContent=a*10;od.querySelector("span").textContent=b;
-  if(++n>=15){
+  if(++n>=26){
    clearInterval(spin);
    const tens=roll===100?0:Math.floor(roll/10)*10,ones=roll===100?0:roll%10;
    td.querySelector("span").textContent=tens;od.querySelector("span").textContent=ones;
    num.textContent=String(roll).padStart(2,"0");res.textContent=z.text.toUpperCase();
    ov.classList.remove("rolling");ov.classList.add("impact",(z.rank>=4)?"critical":(z.rank<=1)?"fumble":"normal");
    resultSting(z);
-   setTimeout(()=>{if(token===diceFxToken)ov.classList.add("hidden")},z.rank>=4||z.rank<=1?1050:780);
+   setTimeout(()=>{if(token===diceFxToken)ov.classList.add("hidden")},z.rank>=4||z.rank<=1?1350:1050);
   }
- },42);
+ },46);
 }
 function startBattleBgm(){
  if(!bgmEnabled||bgmNodes)return;
@@ -565,7 +565,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.30");
+setOnlineStatus("オンライン：操作できます / BUILD 2.31");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -598,7 +598,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.30")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.31")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
