@@ -228,7 +228,7 @@ function start(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();
+  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();recoverTurnStart();render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
 }
 
@@ -240,7 +240,7 @@ function startCom(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();scheduleCom();
+  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();recoverTurnStart();render();scheduleCom();
  }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
 }
 function comIsActor(){
@@ -293,12 +293,23 @@ function comStep(){
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending)endTurn();render()}
+function recoverTurnStart(){
+ const c=cur();
+ let apGain=1;
+ if(c.state.nextApPenalty){
+   apGain=0;
+   c.state.nextApPenalty=0;
+   battle.log.push({text:`💫 ${c.name}はAP回復を阻害された。`,cls:"special"});
+ }
+ battle.ap=(battle.ap||0)+apGain;
+ c.state.rp=(c.state.rp||0)+1;
+ c.state.normalAttacks=0;
+ battle.log.push({text:`--- ${c.name}のターン開始 / AP +${apGain} / RP +1 ---`,cls:"special"});
+}
 function endTurn(){
- battle.turn=1-battle.turn;if(battle.turn===0)battle.round++;
- const c=cur();let gain=1;
- if(c.state.nextApPenalty){gain=0;c.state.nextApPenalty=0;battle.log.push({text:`💫 ${c.name}はAP回復を阻害された。`,cls:"special"})}
- battle.ap=(battle.ap||0)+gain;c.state.rp=(c.state.rp||0)+1;c.state.normalAttacks=0;
- battle.log.push({text:`--- ROUND ${battle.round} / ${c.name} --- AP +${gain} / RP +1`,cls:"special"})
+ battle.turn=1-battle.turn;
+ if(battle.turn===0)battle.round++;
+ recoverTurnStart();
 }
 function clearResult(){
  const ov=$("result-overlay");ov.classList.add("hidden");ov.classList.remove("result-win","result-lose");
@@ -615,7 +626,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.52");
+setOnlineStatus("オンライン：操作できます / BUILD 2.54");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -648,7 +659,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.52")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.54")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
