@@ -348,12 +348,35 @@ function checkEnd(){
 let bgmEnabled=true;
 const battleBgm=new Audio("audio/battle.mp3");
 battleBgm.loop=true;
-battleBgm.volume=0.05
+battleBgm.volume=0.05;
 battleBgm.preload="auto";
 
-// v2.35: ダイスの画面演出・効果音は使用しない
+// v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
+let rollResultFxToken=0;
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
- if(typeof onDone==="function")setTimeout(onDone,0);
+ const box=$("roll-result-fx");
+ if(!box){if(typeof onDone==="function")onDone();return}
+ const token=++rollResultFxToken;
+ $("roll-result-label").textContent=label;
+ $("roll-result-number").textContent=String(roll);
+ $("roll-result-target").textContent=target!=null?String(target):"—";
+ $("roll-result-status").textContent=z.text;
+ box.className="roll-result-fx";
+ if(z.rank>=4)box.classList.add("critical");
+ else if(z.rank<=1)box.classList.add("fumble");
+ else if(z.rank>=3)box.classList.add("success");
+ else box.classList.add("failure");
+ void box.offsetWidth;
+ box.classList.add("show");
+ setTimeout(()=>{
+  if(token!==rollResultFxToken)return;
+  box.classList.remove("show");
+  setTimeout(()=>{
+   if(token!==rollResultFxToken)return;
+   box.classList.add("hidden");
+   if(typeof onDone==="function")onDone();
+  },160);
+ },780);
 }
 
 function startBattleBgm(){
@@ -554,7 +577,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.37");
+setOnlineStatus("オンライン：操作できます / BUILD 2.38");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -587,7 +610,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.37")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.38")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

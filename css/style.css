@@ -261,3 +261,33 @@
 
 /* v2.35: dice cinematic removed */
 .dice-cinematic,.dice-stage,.d100-die,.percentile-die{display:none!important}
+
+/* v2.38 — compact roll result only; no rolling-dice animation */
+.roll-result-fx{
+ position:fixed;inset:0;z-index:9998;display:grid;place-items:center;
+ pointer-events:none;background:rgba(5,7,11,.18);
+ opacity:0;transition:opacity .14s ease;
+}
+.roll-result-fx.hidden{display:none}
+.roll-result-fx.show{opacity:1}
+.roll-result-card{
+ min-width:min(360px,78vw);padding:22px 34px 20px;text-align:center;
+ border:1px solid rgba(255,255,255,.22);border-radius:18px;
+ background:rgba(10,13,18,.92);box-shadow:0 20px 70px rgba(0,0,0,.55);
+ transform:scale(.92);animation:rollResultPop .22s cubic-bezier(.2,1.5,.3,1) forwards;
+}
+.roll-result-label{font-size:13px;letter-spacing:.18em;color:#aab2c0;font-weight:800}
+.roll-result-main{display:flex;justify-content:center;align-items:baseline;gap:10px;margin:4px 0 3px}
+.roll-result-number{font-size:clamp(58px,10vw,94px);line-height:1;font-weight:1000;color:#fff}
+.roll-result-slash{font-size:30px;color:#687181;font-weight:900}
+.roll-result-target{font-size:30px;color:#b9c0cb;font-weight:900}
+.roll-result-status{font-size:clamp(24px,4vw,38px);font-weight:1000;letter-spacing:.08em}
+.roll-result-fx.success .roll-result-status{color:#72e6a0}
+.roll-result-fx.failure .roll-result-status{color:#ff7272}
+.roll-result-fx.critical .roll-result-status{color:#ffe06e}
+.roll-result-fx.fumble .roll-result-status{color:#ff6d9e}
+@keyframes rollResultPop{
+ 0%{transform:scale(.84);opacity:.25}
+ 100%{transform:scale(1);opacity:1}
+}
+@media(prefers-reduced-motion:reduce){.roll-result-card{animation:none}.roll-result-fx{transition:none}}
