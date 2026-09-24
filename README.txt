@@ -82,3 +82,6 @@ v2.9: ホストが4桁の数字でルームコードを指定可能。PeerJS内�
 
 
 v2.10: bridge準備エラーの根本原因を修正。online-bootstrap.jsがapp.jsより先にロードされていたため、bridge未定義のままオンラインUIが初期化されていた。読み込み順を dice -> character -> app -> online-bootstrap に変更し、bridge確立後にオンライン操作を初期化。
+
+
+v2.12: 接続後にバトルへ移行しない問題を修正。DataConnectionのdata listenerを先に登録し、open済み/未openの両方で一度だけhandshakeを開始。ホストがrequest-character、参加者がcharacterを送り、ホストがP2として受信後にbattle生成→state同期→両画面をbattle-screenへ移行。

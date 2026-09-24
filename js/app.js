@@ -92,40 +92,72 @@ function applyState(data){
 }
 function setupConnection(c,hostSide){
  conn=c;isHost=hostSide;netMode="online";myPlayerIndex=hostSide?0:1;
- const onReady=()=>{
-   setOnlineStatus(hostSide?"オンライン：対戦相手と接続済み":"オンライン：ルームに接続済み");
-   if(hostSide){save("p1");sendNet("request-character")}
-   else{save("p1");sendNet("character",{character:publicChar(p1)})}
+
+ const onData=msg=>{
+  try{
+   if(msg.type==="request-character"&&!hostSide){
+    save("p1");
+    sendNet("character",{character:publicChar(p1)});
+    setOnlineStatus("オンライン：自分のキャラクターを送信しました");
+   }
+   else if(msg.type==="character"&&hostSide){
+    // Host already has P1; the joiner's local P1 becomes host-side P2.
+    p2=msg.character;
+    preview("p2",p2);
+    chars=[fresh(p1),fresh(p2)];
+    battle={
+      turn:chars[0].dex>=chars[1].dex?0:1,
+      round:1,ap:2,pending:null,gameOver:false,
+      log:[{text:"オンライン対戦開始！",cls:"special"}]
+    };
+    $("lobby").classList.add("hidden");
+    $("battle-screen").classList.remove("hidden");
+    $("battle-screen").classList.add("active");
+    setOnlineStatus("オンライン：キャラクター同期完了");
+    render();
+    syncState();
+   }
+   else if(msg.type==="state"&&!hostSide){
+    applyState(msg);
+   }
+   else if(msg.type==="intent"&&hostSide){
+    if(battle?.gameOver)return;
+    const actor=battle.pending?battle.pending.defender:battle.turn;
+    if(actor!==1)return;
+    applyingNet=true;action(msg.action);applyingNet=false;syncState();
+   }
+   else if(msg.type==="result"){
+    showOnlineResult(msg.winnerIndex,myPlayerIndex);
+   }
+   else if(msg.type==="rematch-request"&&hostSide){
+    rematch();syncState();sendNet("rematch");
+   }
+   else if(msg.type==="rematch"&&!hostSide){
+    clearResult();
+   }
+  }catch(e){console.error(e);toast("通信処理エラー："+e.message)}
  };
- if(conn.open)onReady(); else conn.on("open",onReady);
- conn.on("data",msg=>{
-   try{
-    if(msg.type==="request-character"&&!hostSide){save("p1");sendNet("character",{character:publicChar(p1)})}
-    else if(msg.type==="character"&&hostSide){
-      p2=msg.character;preview("p2",p2);
-      chars=[fresh(p1),fresh(p2)];
-      battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[{text:"オンライン対戦開始！",cls:"special"}]};
-      $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-      render();syncState();
-    }else if(msg.type==="state"&&!hostSide)applyState(msg);
-    else if(msg.type==="intent"&&hostSide){
-      if(battle?.gameOver)return;
-      const actor=battle.pending?battle.pending.defender:battle.turn;
-      if(actor!==1)return;
-      applyingNet=true;action(msg.action);applyingNet=false;syncState();
-    }else if(msg.type==="result"){
-      showOnlineResult(msg.winnerIndex,myPlayerIndex);
-    }else if(msg.type==="rematch-request"&&hostSide){
-      rematch();syncState();sendNet("rematch");
-    }else if(msg.type==="rematch"&&!hostSide){
-      clearResult();
-    }
-   }catch(e){console.error(e);toast("通信処理エラー："+e.message)}
- });
+ conn.on("data",onData);
  conn.on("close",()=>setOnlineStatus("接続が切れました"));
- conn.on("error",e=>{console.error(e);setOnlineStatus("通信エラー")});
+ conn.on("error",e=>{console.error(e);setOnlineStatus("通信エラー："+(e.type||e.message||"不明"))});
+
+ let initialized=false;
+ const beginHandshake=()=>{
+  if(initialized)return;
+  initialized=true;
+  setOnlineStatus(hostSide?"オンライン：対戦相手と接続済み／キャラクター要求中":"オンライン：接続済み／キャラクター送信中");
+  if(hostSide){
+   save("p1");
+   sendNet("request-character");
+  }else{
+   save("p1");
+   sendNet("character",{character:publicChar(p1)});
+  }
+ };
+ if(conn.open)beginHandshake();
+ else conn.on("open",beginHandshake);
 }
-function cleanRoomCode(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
+
 function hostOnline(){
  try{
   const code=cleanRoomCode($("host-code").value);
@@ -140,7 +172,6 @@ function hostOnline(){
   peer=new Peer("character-battle-"+code);
   peer.on("open",()=>setOnlineStatus("オンライン：部屋作成完了。相手を待っています"));
   peer.on("connection",c=>{
-    conn=c;
     setOnlineStatus("オンライン：相手から接続要求を受信…");
     setupConnection(c,true);
   });
@@ -163,7 +194,6 @@ function joinOnline(){
   peer=new Peer();
   peer.on("open",()=>{
     const c=peer.connect("character-battle-"+code,{serialization:"json",reliable:true});
-    conn=c;
     setupConnection(c,false);
   });
   peer.on("error",e=>{console.error(e);setOnlineStatus("オンラインエラー："+(e?.type||e?.message||"不明"))});
