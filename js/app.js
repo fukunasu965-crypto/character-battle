@@ -126,22 +126,41 @@ function setupConnection(c,hostSide){
 }
 function hostOnline(){
  try{
-  save("p1");netMode="online";isHost=true;myPlayerIndex=0;
-  const code=makeRoomCode();$("room-code").textContent=code;setOnlineStatus("相手の接続を待っています…");
-  peer=new Peer(code);
-  peer.on("open",()=>setOnlineStatus("ルームコードを相手に伝えてください"));
+  save("p1");
+  if(typeof Peer==="undefined")throw new Error("PeerJSの読み込みに失敗しました");
+  if(peer&&!peer.destroyed)peer.destroy();
+  netMode="online";isHost=true;myPlayerIndex=0;
+  $("room-code").textContent="発行中…";
+  setOnlineStatus("ルームを作成しています…");
+  peer=new Peer({debug:2});
+  peer.on("open",id=>{
+    $("room-code").textContent=id;
+    setOnlineStatus("ルーム作成完了。相手にこのコードを伝えてください");
+  });
   peer.on("connection",c=>setupConnection(c,true));
-  peer.on("error",e=>{console.error(e);toast("オンライン接続エラー："+e.type)});
- }catch(e){toast("ホスト作成エラー："+e.message)}
+  peer.on("disconnected",()=>setOnlineStatus("シグナリングサーバーから切断されました"));
+  peer.on("error",e=>{
+    console.error("PeerJS host error",e);
+    $("room-code").textContent="作成失敗";
+    setOnlineStatus("ルーム作成失敗："+(e.type||e.message||"unknown"));
+    toast("ルーム作成失敗："+(e.type||e.message||"unknown"));
+  });
+ }catch(e){console.error(e);$("room-code").textContent="作成失敗";setOnlineStatus("ルーム作成失敗："+e.message);toast("ホスト作成エラー："+e.message)}
 }
 function joinOnline(){
  try{
-  save("p1");const code=$("join-code").value.trim();if(!code)throw new Error("ルームコードを入力してください");
+  save("p1");
+  if(typeof Peer==="undefined")throw new Error("PeerJSの読み込みに失敗しました");
+  const code=$("join-code").value.trim();if(!code)throw new Error("ルームコードを入力してください");
+  if(peer&&!peer.destroyed)peer.destroy();
   netMode="online";isHost=false;myPlayerIndex=1;setOnlineStatus("接続中…");
-  peer=new Peer();
-  peer.on("open",()=>setupConnection(peer.connect(code,{reliable:true}),false));
-  peer.on("error",e=>{console.error(e);toast("オンライン接続エラー："+e.type)});
- }catch(e){toast("参加エラー："+e.message)}
+  peer=new Peer({debug:2});
+  peer.on("open",()=>{
+    const c=peer.connect(code,{reliable:true,serialization:"json"});
+    setupConnection(c,false);
+  });
+  peer.on("error",e=>{console.error("PeerJS join error",e);setOnlineStatus("接続失敗："+(e.type||e.message||"unknown"));toast("オンライン接続エラー："+(e.type||e.message||"unknown"))});
+ }catch(e){console.error(e);setOnlineStatus("参加失敗："+e.message);toast("参加エラー："+e.message)}
 }
 function canActHere(){
  if(netMode==="local")return true;
