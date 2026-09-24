@@ -336,104 +336,24 @@ function checkEnd(){
 
 
 
-let diceFxToken=0,diceAudioCtx=null,bgmNodes=null,bgmEnabled=true;
-function audioCtx(){
- if(!diceAudioCtx) diceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
- if(diceAudioCtx.state==="suspended")diceAudioCtx.resume();
- return diceAudioCtx;
-}
-function diceSound(){
- try{
-  const ac=audioCtx(),now=ac.currentTime;
-  // Layered hard-surface dice tumble: many short impacts, slowing toward the stop.
-  let t=0;
-  for(let i=0;i<18;i++){
-   t += .022 + i*.0032;
-   const dur=.018+Math.random()*.022;
-   const o=ac.createOscillator(),g=ac.createGain(),f=ac.createBiquadFilter();
-   o.type=i%3===0?"square":"triangle";
-   o.frequency.setValueAtTime(120+Math.random()*520,now+t);
-   f.type="bandpass";f.frequency.value=650+Math.random()*1700;f.Q.value=.7;
-   const peak=.025+Math.random()*.055;
-   g.gain.setValueAtTime(.0001,now+t);
-   g.gain.exponentialRampToValueAtTime(peak,now+t+.002);
-   g.gain.exponentialRampToValueAtTime(.0001,now+t+dur);
-   o.connect(f).connect(g).connect(ac.destination);o.start(now+t);o.stop(now+t+dur+.01);
-  }
-  // final satisfying clack
-  for(const [freq,delay,gain] of [[105,.61,.10],[235,.625,.065]]){
-   const o=ac.createOscillator(),g=ac.createGain();
-   o.type="triangle";o.frequency.value=freq;
-   g.gain.setValueAtTime(.0001,now+delay);g.gain.exponentialRampToValueAtTime(gain,now+delay+.003);
-   g.gain.exponentialRampToValueAtTime(.0001,now+delay+.09);
-   o.connect(g).connect(ac.destination);o.start(now+delay);o.stop(now+delay+.1);
-  }
- }catch(e){}
-}
-function resultSting(z){
- try{
-  const ac=audioCtx(),now=ac.currentTime;
-  const good=z.rank>=3,rare=z.rank>=4||z.rank<=1;
-  const notes=good?(rare?[523,659,784]:[440,554]):(rare?[196,147,110]:[220,185]);
-  notes.forEach((freq,i)=>{
-   const o=ac.createOscillator(),g=ac.createGain();o.type=good?"sine":"sawtooth";o.frequency.value=freq;
-   const t=now+i*.065;g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.045,t+.01);g.gain.exponentialRampToValueAtTime(.0001,t+.18);
-   o.connect(g).connect(ac.destination);o.start(t);o.stop(t+.2);
-  });
- }catch(e){}
-}
+let bgmEnabled=true;
+const battleBgm=new Audio("audio/battle.mp3");
+battleBgm.loop=true;
+battleBgm.volume=0.25;
+battleBgm.preload="auto";
+
+// v2.35: ダイスの画面演出・効果音は使用しない
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
- const ov=document.getElementById("dice-cinematic");if(!ov)return;
- const token=++diceFxToken,num=document.getElementById("dice-number"),res=document.getElementById("dice-result");
- const die=document.getElementById("d100-die"),center=document.getElementById("d100-center");
- document.getElementById("dice-label").textContent=label;
- document.getElementById("dice-target").textContent=target!=null?`TARGET ${target}`:"";
- res.textContent="";num.textContent="";center.textContent="?";
- ov.className="dice-cinematic rolling";ov.classList.remove("hidden");
- // Restart the physical throw from off-screen every time.
- die.classList.remove("throwing","landed");void die.offsetWidth;die.classList.add("throwing");
- diceSound();
- let n=0;
- const spin=setInterval(()=>{
-  if(token!==diceFxToken){clearInterval(spin);return}
-  center.textContent=String(1+Math.floor(Math.random()*100)).padStart(2,"0");
-  if(++n>=34){
-   clearInterval(spin);
-   center.textContent=String(roll).padStart(2,"0");
-   num.textContent=String(roll).padStart(2,"0");res.textContent=z.text.toUpperCase();
-   ov.classList.remove("rolling");ov.classList.add("impact",(z.rank>=4)?"critical":(z.rank<=1)?"fumble":"normal");
-   die.classList.remove("throwing");die.classList.add("landed");
-   resultSting(z);
-   setTimeout(()=>{
-     if(token!==diceFxToken)return;
-     ov.classList.add("hidden");die.classList.remove("landed");
-     if(typeof onDone==="function")setTimeout(onDone,120);
-   },z.rank>=4||z.rank<=1?1450:1150);
-  }
- },46);
+ if(typeof onDone==="function")setTimeout(onDone,0);
 }
+
 function startBattleBgm(){
- if(!bgmEnabled||bgmNodes)return;
- try{
-  const ac=audioCtx(),master=ac.createGain();master.gain.value=.045;master.connect(ac.destination);
-  // Lightweight generated battle loop: pulse + bass, no copyrighted external asset.
-  const bass=ac.createOscillator(),bassGain=ac.createGain();
-  bass.type="sawtooth";bass.frequency.value=55;bassGain.gain.value=.18;bass.connect(bassGain).connect(master);bass.start();
-  const pulse=ac.createOscillator(),pulseGain=ac.createGain();
-  pulse.type="square";pulse.frequency.value=110;pulseGain.gain.value=.035;pulse.connect(pulseGain).connect(master);pulse.start();
-  const timer=setInterval(()=>{
-   if(!bgmNodes)return;
-   const t=ac.currentTime; pulseGain.gain.cancelScheduledValues(t);
-   pulseGain.gain.setValueAtTime(.015,t);pulseGain.gain.linearRampToValueAtTime(.12,t+.025);pulseGain.gain.exponentialRampToValueAtTime(.015,t+.16);
-  },500);
-  bgmNodes={bass,pulse,master,timer};
- }catch(e){}
+ if(!bgmEnabled)return;
+ battleBgm.play().catch(()=>{});
 }
 function stopBattleBgm(){
- if(!bgmNodes)return;
- clearInterval(bgmNodes.timer);
- try{bgmNodes.bass.stop();bgmNodes.pulse.stop();bgmNodes.master.disconnect()}catch(e){}
- bgmNodes=null;
+ battleBgm.pause();
+ battleBgm.currentTime=0;
 }
 const battleFlavor={
  attack:[
@@ -625,7 +545,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.34");
+setOnlineStatus("オンライン：操作できます / BUILD 2.35");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -658,7 +578,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.34")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.35")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

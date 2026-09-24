@@ -258,3 +258,6 @@
  100%{transform:rotateX(0) rotateY(0) rotateZ(0)}
 }
 @media(max-width:650px){.d100-die{width:min(64vw,270px);top:43%}}
+
+/* v2.35: dice cinematic removed */
+.dice-cinematic,.dice-stage,.d100-die,.percentile-die{display:none!important}
