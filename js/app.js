@@ -131,10 +131,10 @@ function hostOnline(){
   if(typeof Peer!=="function")throw new Error("PeerJSが読み込まれていません");
   if(peer&&!peer.destroyed)peer.destroy();
   netMode="online";isHost=true;myPlayerIndex=0;
-  $("room-code").textContent="発行中…";
+  $("room-box").classList.remove("hidden");$("room-display").textContent="発行中…";
   peer=new Peer();
   peer.on("open",id=>{
-   $("room-code").textContent=id;
+   $("room-box").classList.remove("hidden");$("room-display").textContent=id;
    setOnlineStatus("オンライン：部屋作成完了");
   });
   peer.on("connection",c=>{
@@ -143,12 +143,12 @@ function hostOnline(){
   });
   peer.on("error",e=>{
    console.error(e);
-   $("room-code").textContent="作成失敗";
+   $("room-box").classList.remove("hidden");$("room-display").textContent="作成失敗";
    setOnlineStatus("オンラインエラー："+(e.type||e.message||"不明"));
   });
  }catch(e){
   console.error(e);
-  $("room-code").textContent="作成失敗";
+  $("room-box").classList.remove("hidden");$("room-display").textContent="作成失敗";
   setOnlineStatus("オンラインエラー："+e.message);
  }
 }
@@ -307,6 +307,6 @@ $("rematch-btn").addEventListener("click",()=>{
 $("result-lobby-btn").addEventListener("click",()=>location.reload());
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-$("copy-room").addEventListener("click",()=>toast("ルームコード："+$("room-code").textContent));
+$("copy-room").addEventListener("click",()=>toast("ルームコード："+$("room-display").textContent));
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p1",c);preview("p1",c)}}catch(e){}

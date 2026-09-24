@@ -76,3 +76,4 @@ v2.5: オンライン部屋作成を修正。手動生成IDをPeerコンスト�
 
 
 v2.6: オンラインUI/イベントを一本化。PeerJS公式の new Peer() -> open(id) -> connect/connection フロー。オンライン状態を常時表示。オンライン時は再戦ボタン非表示。
+\n\nv2.7: オンライン表示不能の実原因を修正。旧UIではroom-codeがinput要素なのにJSがtextContentへルームIDを書いていたため、IDが画面に見えなかった。オンラインUIを再構築し、room-displayへIDを表示、room-boxを部屋作成時に表示するよう修正。\n
