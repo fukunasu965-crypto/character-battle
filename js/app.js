@@ -72,7 +72,7 @@ function fresh(base){
      firstAid:Number(base.firstAid ?? 30)
    },
    state:{
-     rp:1,
+     ap:1,rp:1,
      attackBonus:0,
      taunted:false,
      intimidated:false,
@@ -117,7 +117,7 @@ function setupConnection(c,hostSide){
     chars=[fresh(p1),fresh(p2)];
     battle={
       turn:chars[0].dex>=chars[1].dex?0:1,
-      round:1,ap:1,pending:null,gameOver:false,
+      round:1,pending:null,gameOver:false,
       log:[{text:"オンライン対戦開始！",cls:"special"}]
     };
     $("lobby").classList.add("hidden");
@@ -226,7 +226,7 @@ function start(){
   save("p1");save("p2");
   if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
   chars=[fresh(p1),fresh(p2)];
-  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
+  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();recoverTurnStart();render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
@@ -238,7 +238,7 @@ function startCom(){
   clearResult();save("p1");save("p2");
   if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
   chars=[fresh(p1),fresh(p2)];
-  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
+  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();recoverTurnStart();render();scheduleCom();
  }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
@@ -269,7 +269,7 @@ function comStep(){
 
   /* COM only chooses an active action on its own turn. */
   if(battle.pending||battle.turn!==1)return;
-  const ap=battle.ap,hpRate=c.hp/c.maxHp,targetHp=t.hp/t.maxHp;
+  const ap=c.state.ap,hpRate=c.hp/c.maxHp,targetHp=t.hp/t.maxHp;
   const canIntimidate=c.mp>=2&&!t.state.intimidated,canTaunt=!t.state.taunted;
 
   if(c.state.taunted){
@@ -301,7 +301,7 @@ function recoverTurnStart(){
    c.state.nextApPenalty=0;
    battle.log.push({text:`💫 ${c.name}はAP回復を阻害された。`,cls:"special"});
  }
- battle.ap=(battle.ap||0)+apGain;
+ c.state.ap=(c.state.ap||0)+apGain;
  c.state.rp=(c.state.rp||0)+1;
  c.state.normalAttacks=0;
  battle.log.push({text:`--- ${c.name}のターン開始 / AP +${apGain} / RP +1 ---`,cls:"special"});
@@ -331,7 +331,7 @@ function showOnlineResult(winnerIndex,myPlayerIndex){
 function rematch(){
  clearResult();
  chars=[fresh(p1),fresh(p2)];
- battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
+ battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,pending:null,gameOver:false,log:[]};
  battle.log.push({text:"再戦開始！ "+cur().name+"のターン。",cls:"special"});
  render();
 }
@@ -517,21 +517,21 @@ function deal(extra=0){
  const hpBefore=d.hp;d.hp=Math.max(0,d.hp-n);animate(p.defender,"hit");flavor("hit",p);battle.log.push({text:`${p.weapon.name} → ${n}ダメージ！`,cls:"damage"});checkStun(p.defender,hpBefore,n);checkEnd();
 }
 function attack(type){
- if(battle.pending||battle.gameOver)return;const c=cur(),cost=type==="heavy"?2:1;if(battle.ap<cost)return;
+ if(battle.pending||battle.gameOver)return;const c=cur(),cost=type==="heavy"?2:1;if(c.state.ap<cost)return;
  const taunted=!!c.state.taunted;if(taunted)c.state.taunted=false;
- const w=selected(c),skill=clamp(atkSkill(c,type)-activePenalty(c)-(taunted?10:0)),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;battle.ap-=cost;
+ const w=selected(c),skill=clamp(atkSkill(c,type)-activePenalty(c)-(taunted?10:0)),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;c.state.ap-=cost;
  flavor(type==="heavy"?"heavy":"attack",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
  const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name,()=>animate(battle.turn,type==="heavy"?"heavy":"attack"));battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"攻撃");if(fx)battle.log.push({text:fx,cls:"special"});
- if(z.type==="oneCritical")battle.ap+=1;if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.type==="failure")return finishAction();
+ if(z.type==="oneCritical")c.state.ap+=1;if(z.type==="hundredFumble"){c.state.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.type==="failure")return finishAction();
  battle.pending={attacker:battle.turn,defender:1-battle.turn,type,result:z,observed,spirit,weapon:w,tauntDamage:taunted?2:0};render();
 }
 function grappleAttack(){
- if(battle.pending||battle.gameOver||battle.ap<1)return;const c=cur(),w=grapple(c);if(!w)return;
+ if(battle.pending||battle.gameOver||c.state.ap<1)return;const c=cur(),w=grapple(c);if(!w)return;
  const taunted=!!c.state.taunted;if(taunted)c.state.taunted=false;
- const skill=clamp(w.skill+c.state.attackBonus-activePenalty(c)-(taunted?10:0));const observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;
+ const skill=clamp(w.skill+c.state.attackBonus-activePenalty(c)-(taunted?10:0));const observed=c.state.attackBonus>0;c.state.attackBonus=0;c.state.ap--;
  flavor("grapple",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
  const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name,()=>animate(battle.turn,"grapple"));battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"組みつき");if(fx)battle.log.push({text:fx,cls:"special"});
- if(z.type==="oneCritical")battle.ap+=1;if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.rank<3)return finishAction();
+ if(z.type==="oneCritical")c.state.ap+=1;if(z.type==="hundredFumble"){c.state.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.rank<3)return finishAction();
  battle.pending={attacker:battle.turn,defender:1-battle.turn,type:"grapple",result:z,observed,spirit:0,weapon:w,tauntDamage:taunted?2:0};render();
 }
 function react(type){
@@ -571,8 +571,8 @@ function action(id){
   if(z.rank>=3){foe().state.intimidated=true;battle.log.push({text:`⚡ ${foe().name}は萎縮した！ 次の能動判定-10。`,cls:"special"})}
   return finishAction();
  }
- if(id==="guard"&&battle.ap>=1){c.state.guard=true;battle.ap--;battle.log.push({text:`${c.name}は防御態勢。`});finishAction()}
-  if(id==="heal"&&battle.ap>=2){battle.ap-=2;const healSkill=clamp(c.skills.firstAid-activePenalty(c)),r=rollD100(),z=judgeRoll(r,healSkill);showDiceFx(r,healSkill,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${healSkill} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
+ if(id==="guard"&&c.state.ap>=1){c.state.guard=true;c.state.ap--;battle.log.push({text:`${c.name}は防御態勢。`});finishAction()}
+  if(id==="heal"&&c.state.ap>=2){cur().state.ap-=2;const healSkill=clamp(c.skills.firstAid-activePenalty(c)),r=rollD100(),z=judgeRoll(r,healSkill);showDiceFx(r,healSkill,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${healSkill} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
  if(netMode==="online"&&isHost&&!applyingNet)syncState();
 }
 function stat(label,v){return `<div class="stat"><span>${label}</span><b>${v}</b></div>`}
@@ -584,7 +584,7 @@ function render(){
    render._syncTimer=setTimeout(syncState,0);
  }
  chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DEX",c.dex)+stat("APP",c.app)+stat("POW",c.pow)+stat("INT",c.int)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.attackBonus?'<span class="effect-chip buff">分析済み：次攻撃 命中+20 / 相手回避-15</span>':""}${c.state.taunted?'<span class="effect-chip debuff">挑発：次行動は攻撃のみ / 命中-10 / ダメージ+2</span>':""}${c.state.intimidated?'<span class="effect-chip debuff">威圧：次の能動D100判定 -10</span>':""}${c.state.nextApPenalty?'<span class="effect-chip debuff">体勢崩れ：次のAP回復なし</span>':""}${c.state.spirit?`<span class="effect-chip buff">闘志 ${c.state.spirit}：次攻撃 ダメージ+${c.state.spirit}${c.state.spirit>=3?" / 命中+10":""}</span>`:""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
- $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${battle.ap}`;
+ $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${cur().state.ap}`;
  const actor=chars[battle.turn];
  const pen=actor.state.intimidated?10:0;
  const setDetail=(id,text)=>{const el=$(id);if(el)el.textContent=text};
@@ -611,7 +611,7 @@ function render(){
  $("actions").classList.toggle("hidden",!!battle.pending);$("reactions").classList.toggle("hidden",!battle.pending);
  ["attack","heavy","grapple","analyze","taunt","intimidate","heal"].forEach(id=>$(id).disabled=!!battle.pending||battle.gameOver||!canActHere());
  if(!battle.pending){
- $("attack").disabled||=battle.ap<1;$("heavy").disabled||=battle.ap<2;$("grapple").disabled||=battle.ap<1||!g;$("heal").disabled||=battle.ap<2;
+ $("attack").disabled||=c.state.ap<1;$("heavy").disabled||=cur().state.ap<2;$("grapple").disabled||=c.state.ap<1||!g;$("heal").disabled||=cur().state.ap<2;
  $("intimidate").disabled||=c.mp<2;
  if(c.state.taunted){["analyze","taunt","intimidate","heal"].forEach(id=>$(id).disabled=true)}
  scheduleCom();
@@ -626,7 +626,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.54");
+setOnlineStatus("オンライン：操作できます / BUILD 2.55");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -659,7 +659,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.54")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.55")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
