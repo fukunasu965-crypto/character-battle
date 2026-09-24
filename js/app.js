@@ -358,12 +358,20 @@ function checkEnd(){
 
 
 
-let bgmEnabled=true;
+let bgmEnabled=true,bgmResetting=false;
 const battleBgm=new Audio("audio/battle.mp3");
 battleBgm.loop=true;
 battleBgm.volume=0.05;
 battleBgm.preload="auto";
 battleBgm.addEventListener("error",()=>console.error("BGM load error: audio/battle.mp3 が見つからないか再生できません。"));
+battleBgm.addEventListener("pause",()=>{
+ if(!bgmResetting && battle && !battle.gameOver && bgmEnabled && !battleBgm.ended){
+   setTimeout(()=>{if(battle && !battle.gameOver && bgmEnabled && battleBgm.paused)battleBgm.play().catch(()=>{});},80);
+ }
+});
+battleBgm.addEventListener("ended",()=>{
+ if(battle && !battle.gameOver && bgmEnabled){battleBgm.currentTime=0;battleBgm.play().catch(()=>{});}
+});
 
 // v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
 let rollResultFxToken=0;
@@ -400,9 +408,11 @@ function startBattleBgm(){
  if(battleBgm.readyState>=2)playNow();
  else battleBgm.addEventListener("canplay",playNow,{once:true});
 }
-function resetBattleBgm(){
+function resetBattleBgmForLobby(){
+ bgmResetting=true;
  battleBgm.pause();
  battleBgm.currentTime=0;
+ setTimeout(()=>bgmResetting=false,120);
 }
 const battleFlavor={
  attack:[
@@ -602,7 +612,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.48");
+setOnlineStatus("オンライン：操作できます / BUILD 2.49");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -617,7 +627,7 @@ try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p
 // Only "ロビーへ戻る" remains as an action.
 let lobbyReturning=false;
 function resultReturnToLobby(ev){
- resetBattleBgm();
+ resetBattleBgmForLobby();
  const btn=ev.target?.closest?.("#result-lobby-btn");
  if(!btn||lobbyReturning)return;
  lobbyReturning=true;
@@ -635,7 +645,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.48")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.49")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
