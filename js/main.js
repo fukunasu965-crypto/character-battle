@@ -1,3 +1,4 @@
+let inBattle=false;
 const el=id=>document.getElementById(id);
 let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
 let myCharacter=null,p2Character=null,remoteCharacter=null;
@@ -73,7 +74,7 @@ el("host-btn").addEventListener("click",()=>{saveP1();createRoom()});
 el("join-btn").addEventListener("click",()=>{saveP1();joinRoom(el("room-code").value.trim())});
 el("copy-room").addEventListener("click",async()=>{await navigator.clipboard.writeText(el("room-display").textContent);toast("部屋コードをコピーしました")});
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>submitIntent(id)));
-el("leave-btn").addEventListener("click",()=>location.reload());
+el("leave-btn").addEventListener("click",()=>{inBattle=false;location.reload()});
 
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){myCharacter=c;applyP1(c);preview(c,"my-preview")}}catch(e){}
@@ -85,6 +86,7 @@ function canOperate(){
  return myRole===actor;
 }
 function showBattle(){
+ inBattle=true;
  el("lobby").classList.remove("active");
  el("lobby").classList.add("hidden");
  el("battle-screen").classList.remove("hidden");

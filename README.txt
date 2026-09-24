@@ -55,3 +55,6 @@ v1.11: キャラクター確定ボタンが動かない根本原因を修正。c
 
 
 v1.12: 戦闘開始時のDOM不整合を修正。initBattle/renderとHTMLを同期し、欠落していた状態表示・ターン・AP要素を追加。全参照IDと全JS構文を検証済み。
+
+
+v1.13: 対戦開始時の ReferenceError（inBattle/inBattale未定義）を修正。グローバル戦闘状態 inBattle を定義し、戦闘画面遷移時true、退出時falseへ更新。綴りもinBattleへ統一。
