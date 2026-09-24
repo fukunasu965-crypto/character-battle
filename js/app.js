@@ -270,6 +270,7 @@ function clearResult(){
  $("fighter1")?.classList.remove("is-winner","is-loser");$("fighter2")?.classList.remove("is-winner","is-loser");
 }
 function showResult(winnerIndex,loserIndex,viewerIndex=null){
+ stopBattleBgm();
  const ov=$("result-overlay");const didWin=viewerIndex===null||viewerIndex===winnerIndex;
  $("result-title").textContent=didWin?"VICTORY":"DEFEAT";
  $("result-winner").textContent=didWin?"🏆 "+chars[winnerIndex].name:chars[loserIndex].name+" は敗北した";
@@ -278,6 +279,7 @@ function showResult(winnerIndex,loserIndex,viewerIndex=null){
  $("fighter"+(winnerIndex+1))?.classList.add("is-winner");$("fighter"+(loserIndex+1))?.classList.add("is-loser");ov.classList.remove("hidden");
 }
 function showOnlineResult(winnerIndex,myPlayerIndex){
+ stopBattleBgm();
  showResult(winnerIndex,1-winnerIndex,myPlayerIndex);
 }
 function rematch(){
@@ -305,6 +307,71 @@ function checkEnd(){
 }
 
 
+
+
+let diceFxToken=0,diceAudioCtx=null,bgmNodes=null,bgmEnabled=true;
+function audioCtx(){
+ if(!diceAudioCtx) diceAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+ if(diceAudioCtx.state==="suspended")diceAudioCtx.resume();
+ return diceAudioCtx;
+}
+function diceSound(){
+ try{
+  const ac=audioCtx(),now=ac.currentTime;
+  // short cluster of dry clicks approximates dice tumbling without external audio assets
+  for(let i=0;i<9;i++){
+   const o=ac.createOscillator(),g=ac.createGain();
+   o.type="triangle";o.frequency.setValueAtTime(150+Math.random()*260,now+i*.045);
+   g.gain.setValueAtTime(.0001,now+i*.045);
+   g.gain.exponentialRampToValueAtTime(.045,now+i*.045+.004);
+   g.gain.exponentialRampToValueAtTime(.0001,now+i*.045+.035);
+   o.connect(g).connect(ac.destination);o.start(now+i*.045);o.stop(now+i*.045+.04);
+  }
+ }catch(e){}
+}
+function showDiceFx(roll,target,z,label="1D100"){
+ const ov=document.getElementById("dice-cinematic");
+ if(!ov)return;
+ const token=++diceFxToken,num=document.getElementById("dice-number"),res=document.getElementById("dice-result");
+ document.getElementById("dice-label").textContent=label;
+ document.getElementById("dice-target").textContent=target!=null?`TARGET ${target}`:"";
+ res.textContent="";num.textContent="??";ov.className="dice-cinematic rolling";ov.classList.remove("hidden");
+ diceSound();
+ let n=0;
+ const spin=setInterval(()=>{
+  if(token!==diceFxToken){clearInterval(spin);return}
+  num.textContent=String(1+Math.floor(Math.random()*100)).padStart(2,"0");
+  if(++n>=12){
+   clearInterval(spin);num.textContent=String(roll).padStart(2,"0");res.textContent=z.text.toUpperCase();
+   ov.classList.remove("rolling");
+   ov.classList.add((z.rank>=4)?"critical":(z.rank<=1)?"fumble":"normal");
+   setTimeout(()=>{if(token===diceFxToken)ov.classList.add("hidden")},650);
+  }
+ },45);
+}
+function startBattleBgm(){
+ if(!bgmEnabled||bgmNodes)return;
+ try{
+  const ac=audioCtx(),master=ac.createGain();master.gain.value=.045;master.connect(ac.destination);
+  // Lightweight generated battle loop: pulse + bass, no copyrighted external asset.
+  const bass=ac.createOscillator(),bassGain=ac.createGain();
+  bass.type="sawtooth";bass.frequency.value=55;bassGain.gain.value=.18;bass.connect(bassGain).connect(master);bass.start();
+  const pulse=ac.createOscillator(),pulseGain=ac.createGain();
+  pulse.type="square";pulse.frequency.value=110;pulseGain.gain.value=.035;pulse.connect(pulseGain).connect(master);pulse.start();
+  const timer=setInterval(()=>{
+   if(!bgmNodes)return;
+   const t=ac.currentTime; pulseGain.gain.cancelScheduledValues(t);
+   pulseGain.gain.setValueAtTime(.015,t);pulseGain.gain.linearRampToValueAtTime(.12,t+.025);pulseGain.gain.exponentialRampToValueAtTime(.015,t+.16);
+  },500);
+  bgmNodes={bass,pulse,master,timer};
+ }catch(e){}
+}
+function stopBattleBgm(){
+ if(!bgmNodes)return;
+ clearInterval(bgmNodes.timer);
+ try{bgmNodes.bass.stop();bgmNodes.pulse.stop();bgmNodes.master.disconnect()}catch(e){}
+ bgmNodes=null;
+}
 const battleFlavor={
  attack:[
   "{A}が間合いを詰め、{W}を鋭く繰り出す！",
@@ -366,7 +433,7 @@ function checkStun(defenderIndex,hpBefore,damage){
  if(!d||d.hp<=0||damage<=0)return;
  // "現HP" means HP immediately before this damage was applied.
  if(damage < hpBefore/2)return;
- const con=clamp((d.con||0)*5),r=rollD100(),z=judgeRoll(r,con);
+ const con=clamp((d.con||0)*5),r=rollD100(),z=judgeRoll(r,con);showDiceFx(r,con,z,"CON CHECK");
  const text=stunFlavor[Math.floor(Math.random()*stunFlavor.length)].replaceAll("{D}",d.name);
  battle.log.push({text:"◆ "+text,cls:"flavor"});
  battle.log.push({text:`気絶ロール CON×5 ${r}/${con} → ${z.text}`,cls:"special"});
@@ -384,7 +451,7 @@ function deal(extra=0){
  // 組みつきは命中しただけではダメージなし。
  // STR対抗に成功した場合のみダメージ＋次ターンAP-1。
  if(p.type==="grapple"){
-  const a=chars[p.attacker],target=clamp(50+(a.str-d.str)*5),r=rollD100(),z=judgeRoll(r,target);
+  const a=chars[p.attacker],target=clamp(50+(a.str-d.str)*5),r=rollD100(),z=judgeRoll(r,target);showDiceFx(r,target,z,"STR CONTEST");
   battle.log.push({text:`STR対抗 ${r}/${target} → ${z.text}`,cls:"special"});
   if(z.rank<3){
    battle.log.push({text:`${d.name}は拘束を振りほどいた！ ダメージなし。`,cls:"special"});
@@ -410,7 +477,7 @@ function attack(type){
  if(battle.pending||battle.gameOver)return;const c=cur(),cost=type==="heavy"?2:1;if(battle.ap<cost)return;
  const w=selected(c),skill=atkSkill(c,type),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;battle.ap-=cost;animate(battle.turn,type==="heavy"?"heavy":"attack");
  flavor(type==="heavy"?"heavy":"attack",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
- const r=rollD100(),z=judgeRoll(r,skill);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"攻撃");if(fx)battle.log.push({text:fx,cls:"special"});
+ const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"攻撃");if(fx)battle.log.push({text:fx,cls:"special"});
  if(z.type==="oneCritical")battle.ap=Math.min(2,battle.ap+1);if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.type==="failure")return finishAction();
  battle.pending={attacker:battle.turn,defender:1-battle.turn,type,result:z,observed,spirit,weapon:w};render();
 }
@@ -418,7 +485,7 @@ function grappleAttack(){
  if(battle.pending||battle.gameOver||battle.ap<1)return;const c=cur(),w=grapple(c);if(!w)return;
  const skill=clamp(w.skill+c.state.attackBonus);const observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;animate(battle.turn,"grapple");
  flavor("grapple",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
- const r=rollD100(),z=judgeRoll(r,skill);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"組みつき");if(fx)battle.log.push({text:fx,cls:"special"});
+ const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"組みつき");if(fx)battle.log.push({text:fx,cls:"special"});
  if(z.type==="oneCritical")battle.ap=Math.min(2,battle.ap+1);if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.rank<3)return finishAction();
  battle.pending={attacker:battle.turn,defender:1-battle.turn,type:"grapple",result:z,observed,spirit:0,weapon:w};render();
 }
@@ -426,7 +493,7 @@ function react(type){
  const p=battle.pending;if(!p||battle.gameOver)return;const d=chars[p.defender];
  if(type==="take"){if(p.type!=="heavy")d.state.spirit=Math.min(3,d.state.spirit+1);deal();battle.pending=null;return finishAction()}
  const cost=type==="dodge"?2:1;if(d.state.rp<cost)return;d.state.rp-=cost;
- const skill=type==="dodge"?dodgeSkill(d,p.observed):counterSkill(d),r=rollD100(),z=judgeRoll(r,skill);battle.log.push({text:`${type==="dodge"?"回避":"反撃"} ${r}/${skill} → ${z.text}`});
+ const skill=type==="dodge"?dodgeSkill(d,p.observed):counterSkill(d),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,type==="dodge"?"DODGE":"COUNTER");battle.log.push({text:`${type==="dodge"?"回避":"反撃"} ${r}/${skill} → ${z.text}`});
  if(z.type==="hundredFumble"){battle.log.push({text:`☠ ${d.name}の100ファンブル！ 防御に失敗し、受けるダメージ+4。`,cls:"special"});deal(4)}
  else if(z.type==="fumble"){battle.log.push({text:`💀 ${d.name}のファンブル！ 防御に失敗し、受けるダメージ+2。`,cls:"special"});deal(2)}
  else if(z.rank>=p.result.rank){flavor(type,p);battle.log.push({text:type==="dodge"?`✓ ${d.name}は攻撃を回避した！`:`✓ ${d.name}は攻撃を防ぎ、反撃の機会を得た！`,cls:"special"});animate(p.defender,type);if(type==="counter"&&z.rank>=3){const a=chars[p.attacker],n=rollDice(3);a.hp=Math.max(0,a.hp-n);battle.log.push({text:`反撃 ${n}ダメージ！`,cls:"damage"});checkEnd()}}else deal();
@@ -442,11 +509,12 @@ function action(id){
  if(battle.pending)return;const c=cur();
  if(id==="guard"&&battle.ap>=1){c.state.guard=true;battle.ap--;battle.log.push({text:`${c.name}は防御態勢。`});finishAction()}
  if(id==="observe"&&battle.ap>=1){c.state.attackBonus=20;battle.ap--;battle.log.push({text:`${c.name}は観察。次の攻撃+20。`});finishAction()}
- if(id==="heal"&&battle.ap>=2){battle.ap-=2;const r=rollD100(),z=judgeRoll(r,c.skills.firstAid);let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${c.skills.firstAid} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
+ if(id==="heal"&&battle.ap>=2){battle.ap-=2;const r=rollD100(),z=judgeRoll(r,c.skills.firstAid);showDiceFx(r,c.skills.firstAid,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${c.skills.firstAid} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
  if(netMode==="online"&&isHost&&!applyingNet)syncState();
 }
 function stat(label,v){return `<div class="stat"><span>${label}</span><b>${v}</b></div>`}
 function render(){
+ if(battle)startBattleBgm();
  if(!battle)return;
  if(netMode==="online"&&isHost&&!applyingNet&&conn?.open){
    clearTimeout(render._syncTimer);
@@ -467,7 +535,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.27");
+setOnlineStatus("オンライン：操作できます / BUILD 2.29");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -482,6 +550,7 @@ try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p
 // Only "ロビーへ戻る" remains as an action.
 let lobbyReturning=false;
 function resultReturnToLobby(ev){
+ stopBattleBgm();
  const btn=ev.target?.closest?.("#result-lobby-btn");
  if(!btn||lobbyReturning)return;
  lobbyReturning=true;
@@ -499,7 +568,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.27")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.29")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
@@ -517,3 +586,9 @@ document.addEventListener("click",resultReturnToLobby,true);
  ov.addEventListener("click",e=>{if(e.target===ov)ov.classList.add("hidden")});
  document.addEventListener("keydown",e=>{if(e.key==="Escape")ov.classList.add("hidden")});
 })();
+
+document.addEventListener("click",e=>{
+ const b=e.target?.closest?.("#bgm-toggle"); if(!b)return;
+ bgmEnabled=!bgmEnabled;b.textContent=bgmEnabled?"♫ BGM":"♫ BGM OFF";
+ if(bgmEnabled&&battle)startBattleBgm();else stopBattleBgm();
+});
