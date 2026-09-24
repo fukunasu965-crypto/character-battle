@@ -79,3 +79,6 @@ v2.6: オンラインUI/イベントを一本化。PeerJS公式の new Peer() ->
 \n\nv2.7: オンライン表示不能の実原因を修正。旧UIではroom-codeがinput要素なのにJSがtextContentへルームIDを書いていたため、IDが画面に見えなかった。オンラインUIを再構築し、room-displayへIDを表示、room-boxを部屋作成時に表示するよう修正。\n
 
 v2.9: ホストが4桁の数字でルームコードを指定可能。PeerJS内部IDは character-battle-XXXX。bridge unavailable対策として、app.jsのbridge準備確認後のみ接続し、既にopen済みDataConnectionをsetupConnectionが即時初期化するよう修正。
+
+
+v2.10: bridge準備エラーの根本原因を修正。online-bootstrap.jsがapp.jsより先にロードされていたため、bridge未定義のままオンラインUIが初期化されていた。読み込み順を dice -> character -> app -> online-bootstrap に変更し、bridge確立後にオンライン操作を初期化。

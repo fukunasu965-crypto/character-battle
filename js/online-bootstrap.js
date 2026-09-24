@@ -13,7 +13,6 @@
  }
  function peerReady(){
    if(typeof window.Peer!=="function")throw new Error("PeerJSが読み込まれていません");
-   if(!bridge())throw new Error("ゲーム本体のオンライン機能がまだ準備できていません");
  }
  function clean4(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
 
@@ -33,7 +32,7 @@
        status("オンライン：相手から接続要求を受信…");
        c.on("open",()=>{
          status("オンライン：対戦相手と接続しました");
-         bridge().hostConnected(c);
+         const br=bridge(); if(!br)throw new Error("ゲーム本体との接続に失敗しました"); br.hostConnected(c);
        });
        c.on("error",e=>err("データ接続エラー",e));
      });
@@ -57,7 +56,7 @@
        const c=p.connect("character-battle-"+code,{serialization:"json",reliable:true});
        c.on("open",()=>{
          status("オンライン：ルームに接続しました");
-         bridge().joinConnected(c);
+         const br=bridge(); if(!br)throw new Error("ゲーム本体との接続に失敗しました"); br.joinConnected(c);
        });
        c.on("error",e=>err("データ接続エラー",e));
      });
@@ -70,7 +69,6 @@
    $("join-code")?.addEventListener("input",e=>e.target.value=clean4(e.target.value));
    $("host-btn")?.addEventListener("click",window.__cbCreateRoom);
    $("join-btn")?.addEventListener("click",window.__cbJoinRoom);
-   // app.js is loaded after this file; defer readiness message until all scripts have executed.
-   setTimeout(()=>status(bridge()?"オンライン：操作できます":"オンライン：ゲーム本体の準備に失敗しました"),0);
+   status(bridge()?"オンライン：操作できます":"オンライン：ゲーム本体の準備に失敗しました");
  });
 })();
