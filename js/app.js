@@ -228,7 +228,7 @@ function start(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();
+  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
 }
 
@@ -240,7 +240,7 @@ function startCom(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();scheduleCom();
+  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});render();scheduleCom();
  }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
 }
 function comIsActor(){
@@ -260,31 +260,57 @@ function comStep(){
   if(!battle||!comMode||battle.gameOver)return;
   const c=chars[1],t=chars[0];
 
-  /* COM defender: pending reaction must be resolved even though battle.turn is P1. */
   if(battle.pending && battle.pending.defender===1){
-   if(c.state.rp>=2&&(c.hp<=Math.ceil(c.maxHp*.55)||c.skills.dodge>=55))return react("dodge");
-   if(c.state.rp>=1&&c.skills.attack>=65&&c.hp>Math.ceil(c.maxHp*.35))return react("counter");
+   if(c.state.rp>=2&&(c.hp<=Math.ceil(c.maxHp*.45)||c.skills.dodge>=60))return react("dodge");
+   if(c.state.rp>=1&&c.skills.attack>=65&&c.hp>Math.ceil(c.maxHp*.30))return react("counter");
    return react("take");
   }
-
-  /* COM only chooses an active action on its own turn. */
   if(battle.pending||battle.turn!==1)return;
-  const ap=battle.ap,hpRate=c.hp/c.maxHp,targetHp=t.hp/t.maxHp;
-  const canIntimidate=c.mp>=2&&!t.state.intimidated,canTaunt=!t.state.taunted;
 
+  const ap=battle.ap;
+  const hpRate=c.hp/c.maxHp;
+  const targetHp=t.hp/t.maxHp;
+  const canIntimidate=c.mp>=2&&!t.state.intimidated;
+  const canTaunt=!t.state.taunted;
+  const g=grapple(c);
+
+  /* 挑発中は攻撃を最優先 */
   if(c.state.taunted){
-   if(ap>=2&&(targetHp<=.45||Math.random()<.60))return action("heavy");
+   if(ap>=2&&(targetHp<=.55||Math.random()<.70))return action("heavy");
    if(ap>=1)return action("attack");
-   c.state.taunted=false;log("COMは攻撃できず、挑発状態が解除された。");return action("analyze");
+   c.state.taunted=false;
+   log("COMは攻撃できず、挑発状態が解除された。");
   }
-  if(ap>=2&&hpRate<=.32&&c.hp<c.maxHp&&Math.random()<.72)return action("heal");
-  if(canIntimidate&&(t.state.rp>=1||t.skills.attack>=55)&&Math.random()<.78)return action("intimidate");
-  if(canTaunt&&ap<=1&&Math.random()<.68)return action("taunt");
-  if(!c.state.attackBonus&&(t.skills.dodge>=45||c.skills.attack<65)&&Math.random()<.72)return action("analyze");
-  if(ap>=1&&grapple(c)&&grapple(c).skill>=50&&c.str>=t.str&&!t.state.nextApPenalty&&Math.random()<.58)return action("grapple");
-  if(canIntimidate&&Math.random()<.48)return action("intimidate");
-  if(canTaunt&&Math.random()<.42)return action("taunt");
-  if(ap>=2&&(c.state.attackBonus||targetHp<=.5||ap>=3)&&Math.random()<.72)return action("heavy");
+
+  /* 回復：HP半分以下から積極的。瀕死なら最優先 */
+  if(ap>=2&&c.hp<c.maxHp){
+   if(hpRate<=.28)return action("heal");
+   if(hpRate<=.50&&Math.random()<.82)return action("heal");
+   if(hpRate<=.68&&Math.random()<.38)return action("heal");
+  }
+
+  /* 決めに行ける場面では攻撃を優先 */
+  if(ap>=2&&targetHp<=.38)return action("heavy");
+  if(ap>=1&&targetHp<=.22)return action("attack");
+
+  /* 分析済みなら攻撃へ繋げる */
+  if(c.state.attackBonus){
+   if(ap>=2&&Math.random()<.72)return action("heavy");
+   if(ap>=1)return action("attack");
+  }
+
+  /* 通常時も攻撃を主軸にする */
+  if(ap>=2&&Math.random()<.46)return action("heavy");
+  if(ap>=1&&Math.random()<.48)return action("attack");
+
+  /* 妨害は攻撃の合間に使う */
+  if(canIntimidate&&(t.state.rp>=2||t.skills.attack>=65)&&Math.random()<.50)return action("intimidate");
+  if(!c.state.attackBonus&&(t.skills.dodge>=50||c.skills.attack<60)&&Math.random()<.52)return action("analyze");
+  if(ap>=1&&g&&g.skill>=50&&c.str>=t.str&&!t.state.nextApPenalty&&Math.random()<.42)return action("grapple");
+  if(canTaunt&&Math.random()<.32)return action("taunt");
+
+  /* 最後は可能な限り攻撃。AP0のときだけ特殊行動 */
+  if(ap>=2)return action("heavy");
   if(ap>=1)return action("attack");
   if(canIntimidate)return action("intimidate");
   if(canTaunt)return action("taunt");
@@ -358,23 +384,7 @@ function checkEnd(){
 
 
 
-let bgmEnabled=true,bgmResetting=false;
-const battleBgm=new Audio("audio/battle.mp3");
-battleBgm.loop=true;
-battleBgm.volume=0.05;
-battleBgm.preload="auto";
-battleBgm.addEventListener("error",()=>console.error("BGM load error: audio/battle.mp3 が見つからないか再生できません。"));
-battleBgm.addEventListener("pause",()=>{
- if(!bgmResetting && battle && !battle.gameOver && bgmEnabled && !battleBgm.ended){
-   setTimeout(()=>{if(battle && !battle.gameOver && bgmEnabled && battleBgm.paused)battleBgm.play().catch(()=>{});},80);
- }
-});
-battleBgm.addEventListener("ended",()=>{
- if(battle && !battle.gameOver && bgmEnabled){battleBgm.currentTime=0;battleBgm.play().catch(()=>{});}
-});
 
-// v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
-let rollResultFxToken=0;
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
  const box=$("roll-result-fx");
  if(!box){if(typeof onDone==="function")onDone();return}
@@ -401,19 +411,6 @@ function showDiceFx(roll,target,z,label="1D100",onDone=null){
  },780);
 }
 
-function startBattleBgm(){
- if(!bgmEnabled)return;
- battleBgm.volume=0.05;
- const playNow=()=>battleBgm.play().catch(err=>console.warn("BGM play failed:",err));
- if(battleBgm.readyState>=2)playNow();
- else battleBgm.addEventListener("canplay",playNow,{once:true});
-}
-function resetBattleBgmForLobby(){
- bgmResetting=true;
- battleBgm.pause();
- battleBgm.currentTime=0;
- setTimeout(()=>bgmResetting=false,120);
-}
 const battleFlavor={
  attack:[
   "{A}が間合いを詰め、{W}を鋭く繰り出す！",
@@ -612,7 +609,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.49");
+setOnlineStatus("オンライン：操作できます / BUILD 2.50");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -627,7 +624,7 @@ try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p
 // Only "ロビーへ戻る" remains as an action.
 let lobbyReturning=false;
 function resultReturnToLobby(ev){
- resetBattleBgmForLobby();
+ 
  const btn=ev.target?.closest?.("#result-lobby-btn");
  if(!btn||lobbyReturning)return;
  lobbyReturning=true;
@@ -645,7 +642,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.49")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.50")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
@@ -663,9 +660,3 @@ document.addEventListener("click",resultReturnToLobby,true);
  ov.addEventListener("click",e=>{if(e.target===ov)ov.classList.add("hidden")});
  document.addEventListener("keydown",e=>{if(e.key==="Escape")ov.classList.add("hidden")});
 })();
-
-document.addEventListener("click",e=>{
- const b=e.target?.closest?.("#bgm-toggle"); if(!b)return;
- bgmEnabled=!bgmEnabled;b.textContent=bgmEnabled?"♫ BGM":"♫ BGM OFF";
- if(bgmEnabled)startBattleBgm();else battleBgm.pause();
-});
