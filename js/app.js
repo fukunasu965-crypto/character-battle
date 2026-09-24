@@ -354,7 +354,6 @@ battleBgm.preload="auto";
 // v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
 let rollResultFxToken=0;
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
- if(bgmEnabled && battleBgm.paused) battleBgm.play().catch(()=>{});
  const box=$("roll-result-fx");
  if(!box){if(typeof onDone==="function")onDone();return}
  const token=++rollResultFxToken;
@@ -381,12 +380,12 @@ function showDiceFx(roll,target,z,label="1D100",onDone=null){
 }
 
 function startBattleBgm(){
- if(!bgmEnabled||!battleBgm.paused)return;
+ if(!bgmEnabled || !battleBgm.paused)return;
  battleBgm.play().catch(()=>{});
 }
-function stopBattleBgm(reset=false){
+function resetBattleBgm(){
  battleBgm.pause();
- if(reset)battleBgm.currentTime=0;
+ battleBgm.currentTime=0;
 }
 const battleFlavor={
  attack:[
@@ -584,7 +583,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.40");
+setOnlineStatus("オンライン：操作できます / BUILD 2.41");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -599,7 +598,7 @@ try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p
 // Only "ロビーへ戻る" remains as an action.
 let lobbyReturning=false;
 function resultReturnToLobby(ev){
- stopBattleBgm(true);
+ resetBattleBgm();
  const btn=ev.target?.closest?.("#result-lobby-btn");
  if(!btn||lobbyReturning)return;
  lobbyReturning=true;
@@ -617,7 +616,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.40")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.41")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
@@ -639,5 +638,5 @@ document.addEventListener("click",resultReturnToLobby,true);
 document.addEventListener("click",e=>{
  const b=e.target?.closest?.("#bgm-toggle"); if(!b)return;
  bgmEnabled=!bgmEnabled;b.textContent=bgmEnabled?"♫ BGM":"♫ BGM OFF";
- if(bgmEnabled&&battle)startBattleBgm();else stopBattleBgm();
+ if(bgmEnabled&&battle)startBattleBgm();else battleBgm.pause();
 });
