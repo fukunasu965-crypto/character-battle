@@ -556,8 +556,14 @@ function render(){
    clearTimeout(render._syncTimer);
    render._syncTimer=setTimeout(syncState,0);
  }
- chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DEX",c.dex)+stat("APP",c.app)+stat("POW",c.pow)+stat("INT",c.int)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.taunted?"<span>挑発</span>":""}${c.state.intimidated?"<span>萎縮</span>":""}${c.state.spirit?`<span>闘志 ${c.state.spirit}</span>`:""}${c.state.guard?"<span>防御</span>":""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
+ chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DEX",c.dex)+stat("APP",c.app)+stat("POW",c.pow)+stat("INT",c.int)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.attackBonus?'<span class="effect-chip buff">分析済み：次攻撃 命中+20 / 相手回避-15</span>':""}${c.state.taunted?'<span class="effect-chip debuff">挑発：次行動は攻撃のみ / 命中-10 / ダメージ+2</span>':""}${c.state.intimidated?'<span class="effect-chip debuff">威圧：次の能動D100判定 -10</span>':""}${c.state.nextApPenalty?'<span class="effect-chip debuff">体勢崩れ：次のAP回復なし</span>':""}${c.state.spirit?`<span class="effect-chip buff">闘志 ${c.state.spirit}：次攻撃 ダメージ+${c.state.spirit}${c.state.spirit>=3?" / 命中+10":""}</span>`:""}${c.state.guard?'<span class="effect-chip buff">防御：被ダメ-2 / 回避+15 / 反撃+15</span>':""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
  $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${battle.ap}`;
+ const actor=chars[battle.turn];
+ const pen=actor.state.intimidated?10:0;
+ const setDetail=(id,text)=>{const el=$(id);if(el)el.textContent=text};
+ setDetail("analyze-detail",`判定 ${clamp(specialSkill(actor,"int")-pen)}%${pen?"（威圧 -10）":""}`);
+ setDetail("taunt-detail",`判定 ${clamp(specialSkill(actor,"app")-pen)}%${pen?"（威圧 -10）":""}`);
+ setDetail("intimidate-detail",`判定 ${clamp(specialSkill(actor,"pow")-pen)}%${pen?"（威圧 -10）":""}`);
  const c=cur(),w=selected(c),g=grapple(c);$("attack-chance").textContent=`判定 ${atkSkill(c)}%`;$("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage}`;$("heavy-chance").textContent=`判定 ${atkSkill(c,"heavy")}%`;$("heavy-detail").textContent=`${w.name} / ${w.damage}+1D4`;$("grapple-chance").textContent=g?`判定 ${g.skill}%`:"技能なし";$("grapple-detail").textContent=g?`${g.damage} / STR対抗`:"組み付きなし";$("heal-chance").textContent=`判定 ${c.skills.firstAid}%`;
  $("analyze-chance").textContent=`INT×5 ${specialSkill(c,"int")}%`;
  $("taunt-chance").textContent=`APP×5 ${specialSkill(c,"app")}%`;
@@ -578,7 +584,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.39");
+setOnlineStatus("オンライン：操作できます / BUILD 2.40");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -611,7 +617,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.39")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.40")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

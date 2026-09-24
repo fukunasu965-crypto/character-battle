@@ -291,3 +291,11 @@
  100%{transform:scale(1);opacity:1}
 }
 @media(prefers-reduced-motion:reduce){.roll-result-card{animation:none}.roll-result-fx{transition:none}}
+
+/* v2.40: active modifiers */
+.effect-chip{display:inline-flex;align-items:center;margin:3px;padding:5px 9px;border-radius:999px;font-size:12px;font-weight:900;border:1px solid currentColor}
+.effect-chip.buff{color:#9bf2bf;background:rgba(36,126,78,.28)}
+.effect-chip.debuff{color:#ff9aaa;background:rgba(145,37,59,.32)}
+.effect-chip.debuff,.effect-chip.buff{animation:effectPulse 1.8s ease-in-out infinite}
+@keyframes effectPulse{50%{filter:brightness(1.25)}}
+@media(prefers-reduced-motion:reduce){.effect-chip.debuff,.effect-chip.buff{animation:none}}
