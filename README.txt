@@ -58,3 +58,6 @@ v1.12: 戦闘開始時のDOM不整合を修正。initBattle/renderとHTMLを同�
 
 
 v1.13: 対戦開始時の ReferenceError（inBattle/inBattale未定義）を修正。グローバル戦闘状態 inBattle を定義し、戦闘画面遷移時true、退出時falseへ更新。綴りもinBattleへ統一。
+
+
+v1.14: main.jsに残存していた未定義$()をel()へ統一。さらにcharacter.jsのclamp()とbattle.jsのclamp宣言がブラウザのclassic scriptグローバルで衝突していたため、battle側をbclampへ変更。これらが初期化を止め、JSON読込・確定ボタンを無反応にしていた原因。

@@ -1,6 +1,6 @@
 function fx(index,type){window.dispatchEvent(new CustomEvent("battlefx",{detail:{index,type}}))}
 let characters=[],battle={round:1,turn:0,ap:2,gameOver:false,pending:null,logs:[]};
-const current=()=>characters[battle.turn],opponent=()=>characters[1-battle.turn],clamp=v=>Math.max(5,Math.min(95,v));
+const current=()=>characters[battle.turn],opponent=()=>characters[1-battle.turn],bclamp=v=>Math.max(5,Math.min(95,v));
 function initBattle(chars){
  if(!Array.isArray(chars)||chars.length!==2)throw new Error("PLAYER 1 / PLAYER 2 のキャラクターデータが不足しています");
  characters=chars;
@@ -25,7 +25,7 @@ function action(a){
 function grappleOf(c){return (c.attacks||[]).filter(a=>a.kind==="grapple").sort((a,b)=>b.skill-a.skill)[0]||null}
 function grappleAttack(){fx(battle.turn,"grapple");
  let c=current(),w=grappleOf(c);if(!w)return;
- let skill=clamp(w.skill+c.state.attackBonus);let observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;
+ let skill=bclamp(w.skill+c.state.attackBonus);let observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;
  let r=rollD100(),z=judgeRoll(r,skill);log(`🤼 ${w.name} ${r}/${skill} → ${z.text}`,z.rank>=4||z.rank<=1?"special":"");
  if(z.type==="oneCritical")battle.ap=Math.min(2,battle.ap+1);
  if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finish()}
@@ -35,7 +35,7 @@ function grappleAttack(){fx(battle.turn,"grapple");
 }
 function resolveStrContest(p){
  let a=characters[p.attackerIndex],d=characters[p.defenderIndex];
- let target=clamp(50+(a.str-d.str)*5);
+ let target=bclamp(50+(a.str-d.str)*5);
  let r=rollD100(),z=judgeRoll(r,target);
  log(`── STR対抗 ──`,"special");
  log(`${a.name} STR ${a.str} vs ${d.name} STR ${d.str}`);

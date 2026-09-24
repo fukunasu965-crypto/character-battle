@@ -4,13 +4,13 @@ let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
 let myCharacter=null,p2Character=null,remoteCharacter=null;
 
 function toast(t){el("toast").textContent=t;el("toast").classList.add("show");setTimeout(()=>el("toast").classList.remove("show"),1600)}
-function val(id){return +$(id).value}
+function val(id){return +el(id).value}
 function bindImage(inputId,previewId,key){
- const el=$(inputId); if(!el)return;
- el.addEventListener("change",()=>{const f=el.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData[key]=r.result;$(previewId).innerHTML=`<img src="${r.result}">`};r.readAsDataURL(f)})
+ const el=el(inputId); if(!el)return;
+ el.addEventListener("change",()=>{const f=el.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{imageData[key]=r.result;el(previewId).innerHTML=`<img src="${r.result}">`};r.readAsDataURL(f)})
 }
 function animateFighter(index,type){
- const w=$("portrait-wrap"+(index+1));if(!w)return;
+ const w=el("portrait-wrap"+(index+1));if(!w)return;
  [...w.classList].filter(x=>x.startsWith("anim-")).forEach(x=>w.classList.remove(x));
  void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),900)
 }
@@ -36,7 +36,7 @@ function applyP2(c){
 }
 function preview(c,id){
  const best=chooseBestAttack(c.attacks);
- $(id).textContent=`${c.name} ｜ HP ${c.maxHp} ｜ STR ${c.str} ｜ DEX ${c.dex} ｜ ${best.name} ${best.skill}% / ${best.damage} ｜ 回避 ${c.dodge}`;
+ el(id).textContent=`${c.name} ｜ HP ${c.maxHp} ｜ STR ${c.str} ｜ DEX ${c.dex} ｜ ${best.name} ${best.skill}% / ${best.damage} ｜ 回避 ${c.dodge}`;
 }
 function saveP1(){myCharacter=readP1();preview(myCharacter,"my-preview");localStorage.setItem("cb-character",JSON.stringify(myCharacter));toast("PLAYER 1を確定しました");if(typeof conn!=="undefined"&&conn?.open)send({type:"character",character:myCharacter})}
 function saveP2(){p2Character=readP2();preview(p2Character,"p2-preview");toast("PLAYER 2を確定しました")}
@@ -44,8 +44,8 @@ function saveP2(){p2Character=readP2();preview(p2Character,"p2-preview");toast("
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{
  const pl=btn.dataset.player;
  document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));
- $(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");
- $(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json");
+ el(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");
+ el(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json");
 }));
 
 el("parse-json").addEventListener("click",()=>{
@@ -73,7 +73,7 @@ el("local-start").addEventListener("click",()=>{
 el("host-btn").addEventListener("click",()=>{saveP1();createRoom()});
 el("join-btn").addEventListener("click",()=>{saveP1();joinRoom(el("room-code").value.trim())});
 el("copy-room").addEventListener("click",async()=>{await navigator.clipboard.writeText(el("room-display").textContent);toast("部屋コードをコピーしました")});
-["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>submitIntent(id)));
+["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>el(id).addEventListener("click",()=>submitIntent(id)));
 el("leave-btn").addEventListener("click",()=>{inBattle=false;location.reload()});
 
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
