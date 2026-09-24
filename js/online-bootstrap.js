@@ -1,53 +1,76 @@
 "use strict";
 (function(){
- const byId=id=>document.getElementById(id);
- function status(t){ const e=byId("online-status"); if(e)e.textContent=t; }
- function room(t){ const box=byId("room-box"), out=byId("room-display"); if(box)box.classList.remove("hidden"); if(out)out.textContent=t; }
- function peerError(prefix,e){ const m=(e&& (e.type||e.message))||"不明"; status(prefix+"："+m); console.error(e); }
+ const $=id=>document.getElementById(id);
+ const status=t=>{if($("online-status"))$("online-status").textContent=t};
+ const room=t=>{if($("room-box"))$("room-box").classList.remove("hidden");if($("room-display"))$("room-display").textContent=t};
+ const err=(p,e)=>{const m=e?.type||e?.message||"不明";status(p+"："+m);console.error(e)};
+
+ function bridge(){
+   return window.__cbOnlineBridge &&
+          typeof window.__cbOnlineBridge.hostConnected==="function" &&
+          typeof window.__cbOnlineBridge.joinConnected==="function"
+          ? window.__cbOnlineBridge:null;
+ }
+ function peerReady(){
+   if(typeof window.Peer!=="function")throw new Error("PeerJSが読み込まれていません");
+   if(!bridge())throw new Error("ゲーム本体のオンライン機能がまだ準備できていません");
+ }
+ function clean4(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
 
  window.__cbCreateRoom=function(){
-   status("オンライン：クリックを検出しました");
-   room("発行中…");
    try{
-     if(typeof window.Peer!=="function") throw new Error("PeerJSが読み込まれていません");
-     if(window.__cbPeer && !window.__cbPeer.destroyed) window.__cbPeer.destroy();
-     const p=window.__cbPeer=new window.Peer();
-     status("オンライン：サーバーへ接続中…");
-     p.on("open",id=>{ room(id); status("オンライン：部屋作成完了"); });
+     peerReady();
+     const code=clean4($("host-code")?.value);
+     if(code.length!==4)throw new Error("4桁の数字を入力してください");
+     $("host-code").value=code;
+     status("オンライン：部屋を作成中…");room(code);
+     if(window.__cbPeer&&!window.__cbPeer.destroyed)window.__cbPeer.destroy();
+     // Prefix prevents collisions with unrelated PeerJS users while keeping the visible code 4 digits.
+     const peerId="character-battle-"+code;
+     const p=window.__cbPeer=new window.Peer(peerId);
+     p.on("open",()=>{room(code);status("オンライン：部屋作成完了。相手を待っています");});
      p.on("connection",c=>{
-       status("オンライン：相手が接続しました");
-       if(window.__cbOnlineBridge) window.__cbOnlineBridge.hostConnected(c);
-       else peerError("ゲーム本体との接続失敗",new Error("bridge unavailable"));
+       status("オンライン：相手から接続要求を受信…");
+       c.on("open",()=>{
+         status("オンライン：対戦相手と接続しました");
+         bridge().hostConnected(c);
+       });
+       c.on("error",e=>err("データ接続エラー",e));
      });
-     p.on("error",e=>{ room("作成失敗"); peerError("オンラインエラー",e); });
-   }catch(e){ room("作成失敗"); peerError("オンラインエラー",e); }
+     p.on("error",e=>{
+       if(e?.type==="unavailable-id")err("その4桁コードは既に使用中です",e);
+       else err("オンラインエラー",e);
+     });
+   }catch(e){err("部屋作成エラー",e)}
  };
 
  window.__cbJoinRoom=function(){
-   status("オンライン：参加ボタンを検出しました");
    try{
-     if(typeof window.Peer!=="function") throw new Error("PeerJSが読み込まれていません");
-     const code=(byId("join-code")?.value||"").trim();
-     if(!code) throw new Error("ルームコードを入力してください");
-     if(window.__cbPeer && !window.__cbPeer.destroyed) window.__cbPeer.destroy();
+     peerReady();
+     const code=clean4($("join-code")?.value);
+     if(code.length!==4)throw new Error("4桁の数字を入力してください");
+     $("join-code").value=code;
+     status("オンライン：接続中…");
+     if(window.__cbPeer&&!window.__cbPeer.destroyed)window.__cbPeer.destroy();
      const p=window.__cbPeer=new window.Peer();
-     status("オンライン：サーバーへ接続中…");
      p.on("open",()=>{
-       const c=p.connect(code,{serialization:"json",reliable:true});
+       const c=p.connect("character-battle-"+code,{serialization:"json",reliable:true});
        c.on("open",()=>{
          status("オンライン：ルームに接続しました");
-         if(window.__cbOnlineBridge) window.__cbOnlineBridge.joinConnected(c);
-         else peerError("ゲーム本体との接続失敗",new Error("bridge unavailable"));
+         bridge().joinConnected(c);
        });
-       c.on("error",e=>peerError("接続エラー",e));
+       c.on("error",e=>err("データ接続エラー",e));
      });
-     p.on("error",e=>peerError("オンラインエラー",e));
-   }catch(e){ peerError("オンラインエラー",e); }
+     p.on("error",e=>err("オンラインエラー",e));
+   }catch(e){err("参加エラー",e)}
  };
 
  document.addEventListener("DOMContentLoaded",()=>{
-   byId("host-btn")?.addEventListener("click",window.__cbCreateRoom);
-   byId("join-btn")?.addEventListener("click",window.__cbJoinRoom);
-   status("オンライン：操作できます");
+   $("host-code")?.addEventListener("input",e=>e.target.value=clean4(e.target.value));
+   $("join-code")?.addEventListener("input",e=>e.target.value=clean4(e.target.value));
+   $("host-btn")?.addEventListener("click",window.__cbCreateRoom);
+   $("join-btn")?.addEventListener("click",window.__cbJoinRoom);
+   // app.js is loaded after this file; defer readiness message until all scripts have executed.
+   setTimeout(()=>status(bridge()?"オンライン：操作できます":"オンライン：ゲーム本体の準備に失敗しました"),0);
  });
 })();

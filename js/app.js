@@ -92,11 +92,12 @@ function applyState(data){
 }
 function setupConnection(c,hostSide){
  conn=c;isHost=hostSide;netMode="online";myPlayerIndex=hostSide?0:1;
- conn.on("open",()=>{
+ const onReady=()=>{
    setOnlineStatus(hostSide?"オンライン：対戦相手と接続済み":"オンライン：ルームに接続済み");
    if(hostSide){save("p1");sendNet("request-character")}
    else{save("p1");sendNet("character",{character:publicChar(p1)})}
- });
+ };
+ if(conn.open)onReady(); else conn.on("open",onReady);
  conn.on("data",msg=>{
    try{
     if(msg.type==="request-character"&&!hostSide){save("p1");sendNet("character",{character:publicChar(p1)})}
@@ -312,7 +313,16 @@ bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p1",c);preview("p1",c)}}catch(e){}
 
 window.__cbOnlineBridge={
- hostConnected(c){ setupConnection(c,true); },
- joinConnected(c){ setupConnection(c,false); },
- setRole(hostSide){ netMode="online";isHost=hostSide;myPlayerIndex=hostSide?0:1;peer=window.__cbPeer||peer; }
+ hostConnected(c){
+   peer=window.__cbPeer||peer;
+   conn=c;
+   netMode="online";isHost=true;myPlayerIndex=0;
+   setupConnection(c,true);
+ },
+ joinConnected(c){
+   peer=window.__cbPeer||peer;
+   conn=c;
+   netMode="online";isHost=false;myPlayerIndex=1;
+   setupConnection(c,false);
+ }
 };
