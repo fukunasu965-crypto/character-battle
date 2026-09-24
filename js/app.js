@@ -3,7 +3,7 @@
 const $=id=>document.getElementById(id);
 let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
 let p1=null,p2=null,chars=[],battle=null;
-let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false,remoteIntent=false;
+let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false,remoteIntent=false,comMode=false,comThinking=false;
 
 function toast(t){const x=$("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 function num(id){return Number($(id).value)||0}
@@ -197,13 +197,20 @@ function joinOnline(){
  }catch(e){console.error(e);setOnlineStatus("参加エラー："+e.message)}
 }
 function canActHere(){
- if(netMode==="local")return true;
+ if(netMode==="local"){
+  if(comMode&&battle){
+   const actor=battle.pending?battle.pending.defender:battle.turn;
+   return actor===0;
+  }
+  return true;
+ }
  if(!battle)return false;
  const actor=battle.pending?battle.pending.defender:battle.turn;
  return actor===myPlayerIndex;
 }
 function start(){
  try{
+  comMode=false;comThinking=false;
   netMode="local";isHost=false;myPlayerIndex=0;
   clearResult();
   save("p1");save("p2");
@@ -213,6 +220,47 @@ function start(){
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
+}
+
+function startCom(){
+ try{
+  netMode="local";isHost=false;myPlayerIndex=0;comMode=true;comThinking=false;
+  clearResult();save("p1");save("p2");
+  if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
+  chars=[fresh(p1),fresh(p2)];
+  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+  $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
+  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});render();scheduleCom();
+ }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
+}
+function comIsActor(){
+ if(!comMode||!battle||battle.gameOver)return false;
+ return (battle.pending?battle.pending.defender:battle.turn)===1;
+}
+function scheduleCom(){
+ if(!comIsActor()||comThinking)return;
+ comThinking=true;
+ setTimeout(()=>{comThinking=false;if(comIsActor())comStep()},550);
+}
+function comStep(){
+ if(!comIsActor())return;
+ const c=chars[1];
+ if(battle.pending){
+  const p=battle.pending;
+  // Prefer a viable defense; low RP falls back to taking the hit.
+  if(c.state.rp>=2 && c.skills.dodge>=45)return action("dodge");
+  if(c.state.rp>=1 && c.skills.attack>=55)return action("counter");
+  return action("take");
+ }
+ // Simple, readable AI: heal when hurt, occasionally prepare, otherwise attack.
+ const hpRate=c.hp/Math.max(1,c.maxHp);
+ if(battle.ap>=2 && hpRate<=0.35 && c.skills.firstAid>=35)return action("heal");
+ if(battle.ap>=1 && c.state.attackBonus===0 && Math.random()<0.16)return action("observe");
+ if(battle.ap>=1 && !c.state.guard && Math.random()<0.12)return action("guard");
+ const g=grapple(c);
+ if(battle.ap>=1 && g && g.skill>=60 && Math.random()<0.14)return action("grapple");
+ if(battle.ap>=2 && Math.random()<0.28)return action("heavy");
+ return action("attack");
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending&&battle.ap<=0)endTurn();render()}
@@ -365,15 +413,15 @@ function render(){
  ["attack","heavy","grapple","guard","observe","heal"].forEach(id=>$(id).disabled=!!battle.pending||battle.gameOver||!canActHere());
  if(!battle.pending){$("attack").disabled||=battle.ap<1;$("heavy").disabled||=battle.ap<2;$("grapple").disabled||=battle.ap<1||!g;$("guard").disabled||=battle.ap<1;$("observe").disabled||=battle.ap<1;$("heal").disabled||=battle.ap<2}
  if(battle.pending){const d=chars[battle.pending.defender];$("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / 2RP`;$("counter-detail").textContent=`判定 ${counterSkill(d)}% / 1RP`;$("dodge").disabled=d.state.rp<2||!canActHere();$("counter").disabled=d.state.rp<1||!canActHere();$("take").disabled=!canActHere()}
- $("log").innerHTML=battle.log.map(x=>`<div class="${x.cls||""}">${String(x.text).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;
+ $("log").innerHTML=battle.log.map(x=>`<div class="${x.cls||""}">${String(x.text).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;;if(comMode)scheduleCom();
 }
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{const pl=btn.dataset.player;document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));$(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");$(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json")}));
-$("parse-json").addEventListener("click",()=>importJson("p1"));$("p2-parse-json").addEventListener("click",()=>importJson("p2"));$("save-char").addEventListener("click",()=>save("p1"));$("save-p2").addEventListener("click",()=>save("p2"));$("local-start").addEventListener("click",start);
+$("parse-json").addEventListener("click",()=>importJson("p1"));$("p2-parse-json").addEventListener("click",()=>importJson("p2"));$("save-char").addEventListener("click",()=>save("p1"));$("save-p2").addEventListener("click",()=>save("p2"));$("local-start").addEventListener("click",start);$("com-start").addEventListener("click",startCom);
 $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.23");
+setOnlineStatus("オンライン：操作できます / BUILD 2.24");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -402,10 +450,10 @@ function resultReturnToLobby(ev){
  const roomDisplay=document.getElementById("room-display"); if(roomDisplay)roomDisplay.textContent="";
  battle=null;chars=[];
  const oldConn=conn,oldPeer=peer;
- conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
+ conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.23")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.24")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
