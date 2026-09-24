@@ -248,32 +248,40 @@ function comIsActor(){
  return (battle.pending?battle.pending.defender:battle.turn)===1;
 }
 function scheduleCom(){
- if(!comIsActor()||comThinking)return;
- comThinking=true;
- setTimeout(()=>{comThinking=false;if(comIsActor())comStep()},550);
+ if(!battle||battle.mode!=="com"||battle.gameOver)return;
+ const needsReaction=!!battle.pending&&battle.pending.defender===1;
+ const needsAction=!battle.pending&&battle.turn===1;
+ if(needsReaction||needsAction)comStep();
 }
 function comStep(){
- if(!battle||battle.mode!=="com"||battle.turn!==1||battle.pending||battle.over)return;
- const c=chars[1],t=chars[0];
- setTimeout(()=>{
-  if(!battle||battle.over||battle.turn!==1)return;
-  if(battle.pending){
-   if(c.state.rp>=2&&(c.hp<=Math.ceil(c.maxHp*.55)||c.dodge>=55))return react("dodge");
-   if(c.state.rp>=1&&c.attack>=65&&c.hp>Math.ceil(c.maxHp*.35))return react("counter");
+ if(!battle||battle.mode!=="com"||battle.gameOver)return;
+ clearTimeout(comStep._timer);
+ comStep._timer=setTimeout(()=>{
+  if(!battle||battle.mode!=="com"||battle.gameOver)return;
+  const c=chars[1],t=chars[0];
+
+  /* COM defender: pending reaction must be resolved even though battle.turn is P1. */
+  if(battle.pending && battle.pending.defender===1){
+   if(c.state.rp>=2&&(c.hp<=Math.ceil(c.maxHp*.55)||c.skills.dodge>=55))return react("dodge");
+   if(c.state.rp>=1&&c.skills.attack>=65&&c.hp>Math.ceil(c.maxHp*.35))return react("counter");
    return react("take");
   }
+
+  /* COM only chooses an active action on its own turn. */
+  if(battle.pending||battle.turn!==1)return;
   const ap=battle.ap,hpRate=c.hp/c.maxHp,targetHp=t.hp/t.maxHp;
   const canIntimidate=c.mp>=2&&!t.state.intimidated,canTaunt=!t.state.taunted;
+
   if(c.state.taunted){
    if(ap>=2&&(targetHp<=.45||Math.random()<.60))return action("heavy");
    if(ap>=1)return action("attack");
    c.state.taunted=false;log("COMは攻撃できず、挑発状態が解除された。");return action("analyze");
   }
   if(ap>=2&&hpRate<=.32&&c.hp<c.maxHp&&Math.random()<.72)return action("heal");
-  if(canIntimidate&&(t.state.rp>=1||t.attack>=55)&&Math.random()<.78)return action("intimidate");
+  if(canIntimidate&&(t.state.rp>=1||t.skills.attack>=55)&&Math.random()<.78)return action("intimidate");
   if(canTaunt&&ap<=1&&Math.random()<.68)return action("taunt");
-  if(!c.state.attackBonus&&(t.dodge>=45||c.attack<65)&&Math.random()<.72)return action("analyze");
-  if(ap>=1&&c.grapple>=50&&c.str>=t.str&&!t.state.nextApPenalty&&Math.random()<.58)return action("grapple");
+  if(!c.state.attackBonus&&(t.skills.dodge>=45||c.skills.attack<65)&&Math.random()<.72)return action("analyze");
+  if(ap>=1&&grapple(c)&&grapple(c).skill>=50&&c.str>=t.str&&!t.state.nextApPenalty&&Math.random()<.58)return action("grapple");
   if(canIntimidate&&Math.random()<.48)return action("intimidate");
   if(canTaunt&&Math.random()<.42)return action("taunt");
   if(ap>=2&&(c.state.attackBonus||targetHp<=.5||ap>=3)&&Math.random()<.72)return action("heavy");
@@ -281,7 +289,7 @@ function comStep(){
   if(canIntimidate)return action("intimidate");
   if(canTaunt)return action("taunt");
   return action("analyze");
- },420);
+ },450);
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending)endTurn();render()}
@@ -357,7 +365,7 @@ battleBgm.volume=0.05;
 battleBgm.preload="auto";
 
 document.addEventListener("click",(ev)=>{
- const t=ev.target.closest?.("#local-start,#com-start,#online-start,[data-start-battle]");
+ const t=ev.target.closest?.("#local-start,#com-start,#start-com,#online-start,#start-local,[data-start-battle]");
  if(t && bgmEnabled) battleBgm.play().catch(()=>{});
 },{capture:true});
 
@@ -584,7 +592,9 @@ function render(){
  $("attack").disabled||=battle.ap<1;$("heavy").disabled||=battle.ap<2;$("grapple").disabled||=battle.ap<1||!g;$("heal").disabled||=battle.ap<2;
  $("intimidate").disabled||=c.mp<2;
  if(c.state.taunted){["analyze","taunt","intimidate","heal"].forEach(id=>$(id).disabled=true)}
+ scheduleCom();
 }
+
  if(battle.pending){const d=chars[battle.pending.defender];$("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / COST 2 RP`;$("counter-detail").textContent=`判定 ${counterSkill(d)}% / COST 1 RP`;$("dodge").disabled=d.state.rp<2||!canActHere();$("counter").disabled=d.state.rp<1||!canActHere();$("take").disabled=!canActHere()}
  $("log").innerHTML=battle.log.map(x=>`<div class="${x.cls||""}">${String(x.text).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;;if(comMode)scheduleCom();
 }
@@ -594,7 +604,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.45");
+setOnlineStatus("オンライン：操作できます / BUILD 2.46");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -627,7 +637,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.45")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.46")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
