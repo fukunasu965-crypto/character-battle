@@ -1,7 +1,8 @@
 function freshCharacter(base){let attacks=base.attacks?.length?base.attacks:[{name:"攻撃",skill:+base.attack||50,damage:"1d4+1",kind:"damage"}];let best=chooseBestAttack(attacks);return{name:base.name||"探索者",image:base.image||"",db:base.db||"0",maxHp:+base.maxHp||10,hp:+base.maxHp||10,str:+base.str||50,dex:+base.dex||50,attacks,skills:{attack:+best.skill||50,dodge:+base.dodge||40,firstAid:+base.firstAid||30},state:{attackBonus:0,guard:false,spirit:0,rp:2,normalAttacks:0,nextApPenalty:0}}}
 function getNum(v){let n=Number(v);return Number.isFinite(n)?n:null}
 function damageExpected(expr){expr=String(expr||"").toLowerCase().replace(/\s/g,"");let total=0,found=false;for(let m of expr.matchAll(/(\d*)d(\d+)/g)){found=true;total+=(+(m[1]||1))*(+m[2]+1)/2}for(let m of expr.matchAll(/(?:^|[^\dd])([+-]?\d+)(?!d)/g))total+=+m[1];return found?total:0}
-function chooseBestAttack(arr){let pool=arr.filter(a=>a.kind!=="grapple");if(!pool.length)pool=arr;return [...pool].sort((a,b)=>damageExpected(b.damage)-damageExpected(a.damage)||b.skill-a.skill)[0]||{name:"攻撃",skill:50,damage:"1d4+1",kind:"damage"}}
+function attackExpectedValue(a){return damageExpected(a.damage)*(Math.max(0,Math.min(100,+a.skill||0))/100)}
+function chooseBestAttack(arr){let pool=arr.filter(a=>a.kind!=="grapple");if(!pool.length)pool=arr;return [...pool].sort((a,b)=>attackExpectedValue(b)-attackExpectedValue(a)||damageExpected(b.damage)-damageExpected(a.damage)||b.skill-a.skill)[0]||{name:"攻撃",skill:50,damage:"1d4+1",kind:"damage"}}
 function rollDamageExpr(expr){let s=String(expr||"1d4+1").toLowerCase().replace(/\s/g,""),n=0;for(let m of s.matchAll(/(\d*)d(\d+)/g)){for(let i=0;i<+(m[1]||1);i++)n+=rollDice(+m[2])}let stripped=s.replace(/(\d*)d(\d+)/g,"");for(let m of stripped.matchAll(/[+-]?\d+/g))n+=+m[0];return Math.max(0,n)}
 function parseCcf(data){
  const d=data?.data||data||{}, params=[...(d.params||[]),...(d.status||[])];

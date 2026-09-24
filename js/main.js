@@ -38,7 +38,7 @@ function render(){
  $("control-note").textContent=can?"あなたが操作できます":"相手の操作を待っています";
  $("actions").classList.toggle("hidden",!!battle.pending);$("reactions").classList.toggle("hidden",!battle.pending);
  let c=current(),w=selectedAttack(c),a=effectiveAttack(c,"normal"),h=effectiveAttack(c,"heavy");$("attack-chance").textContent=`判定 ${a}%`;$("heavy-chance").textContent=`判定 ${h}%`;$("heal-chance").textContent=`判定 ${c.skills.firstAid}%`;let gw=grappleOf(c);$("grapple-chance").textContent=gw?`判定 ${clamp(gw.skill+c.state.attackBonus)}%`:"技能なし";$("grapple-detail").textContent=gw?`${gw.damage} / 命中後 STR対抗 / 1AP`:"キャラシに組み付きなし";
- $("attack-detail").textContent=`${w.name} / ${w.kind==="grapple"?"成功時：次ターンAP-1":`${w.damage}（期待値${damageExpected(w.damage).toFixed(1)}）`} / 1AP`;$("heavy-detail").textContent=`${w.name} / ${w.kind==="grapple"?"拘束":"ダメージ "+w.damage+" +1d4"} / 2AP`;
+ $("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage} / 命中込み期待値 ${attackExpectedValue(w).toFixed(2)} / 1AP`;$("heavy-detail").textContent=`${w.name} / ${w.kind==="grapple"?"拘束":"ダメージ "+w.damage+" +1d4"} / 2AP`;
  if(battle.pending){let d=characters[battle.pending.defenderIndex],dv=effectiveDodge(d,battle.pending.observed),ct=effectiveCounter(d);$("dodge-chance").textContent=`判定 ${dv}%`;$("counter-chance").textContent=`判定 ${ct}%`;$("dodge-detail").textContent=`基礎${d.skills.dodge} → 実効${dv} / 2RP`;$("counter-detail").textContent=`基礎${d.skills.attack} → 実効${ct} / 1RP`;$("dodge").disabled=!can||d.state.rp<2;$("counter").disabled=!can||d.state.rp<1;$("take").disabled=!can}
  ["attack","heavy","grapple","guard","observe","heal"].forEach(id=>$(id).disabled=!can||battle.gameOver);$("attack").disabled||=battle.ap<1;$("grapple").disabled||=battle.ap<1||!grappleOf(c);$("heavy").disabled||=battle.ap<2;$("guard").disabled||=battle.ap<1;$("observe").disabled||=battle.ap<1;$("heal").disabled||=battle.ap<2;
  $("log").innerHTML=battle.logs.map(x=>`<div class="${x.c||""}">${escapeHtml(x.t)}</div>`).join("");$("log").scrollTop=$("log").scrollHeight
@@ -47,7 +47,6 @@ function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"
 function lockAll(){document.querySelectorAll(".commands button").forEach(b=>b.disabled=true)}
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");$("manual-panel").classList.toggle("hidden",b.dataset.tab!=="manual");$("ccfolia-panel").classList.toggle("hidden",b.dataset.tab!=="ccfolia")});
 $("parse-json").onclick=()=>{try{let c=parseCcf(JSON.parse($("ccfolia-json").value));applyForm(c);$("import-result").textContent=`読み込み成功：${c.name} / DB ${c.db||"0"}${c.attacks?.some(a=>a.kind==="grapple")?" / 組み付き検出":" / 組み付きなし"}。`;document.querySelector('[data-tab="manual"]').click()}catch(e){toast("JSONを読み込めませんでした")}};
-$("p2-parse-json").onclick=()=>{try{let c=parseCcf(JSON.parse($("p2-ccfolia-json").value));applyP2Form(c);let g=grappleOf(freshCharacter(c));$("p2-import-result").textContent=`読み込み成功：${c.name}${g?` / 組み付き ${g.skill}% (${g.damage})`:" / 組み付きなし"}`;toast("PLAYER 2を読み込みました")}catch(e){$("p2-import-result").textContent="JSONを読み込めませんでした";toast("PLAYER 2のJSONを読み込めませんでした")}};
 $("save-char").onclick=saveChar;$("local-start").onclick=()=>{if(!myCharacter)saveChar();netMode="local";myRole=0;let enemy=freshCharacter({name:$("p2-name").value||"PLAYER 2",maxHp:val("p2-hp"),str:val("p2-str"),dex:val("p2-dex"),attack:val("p2-atk"),dodge:val("p2-dodge"),firstAid:val("p2-aid"),image:imageData.p2,attacks:importedAttacks.p2||[{name:"攻撃",skill:val("p2-atk"),damage:$("p2-dmg").value||"1d4+1",kind:"damage"}]});initBattle([freshCharacter(myCharacter),enemy]);showBattle()};
 $("host-btn").onclick=()=>{if(!myCharacter)saveChar();createRoom()};$("join-btn").onclick=()=>{if(!myCharacter)saveChar();joinRoom($("room-code").value.trim())};
 $("copy-room").onclick=async()=>{await navigator.clipboard.writeText($("room-display").textContent);toast("部屋コードをコピーしました")};
@@ -55,3 +54,19 @@ $("copy-room").onclick=async()=>{await navigator.clipboard.writeText($("room-dis
 $("leave-btn").onclick=()=>location.reload();
 try{let s=JSON.parse(localStorage.getItem("cb-character"));if(s){myCharacter=s;applyForm(s);$("my-preview").textContent=`${s.name} ｜ HP ${s.maxHp} ｜ DEX ${s.dex} ｜ 攻撃 ${s.attack} ｜ 回避 ${s.dodge} ｜ 応急手当 ${s.firstAid}`}}catch(e){}
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
+
+const p2ParseButton=$("p2-parse-json");
+if(p2ParseButton)p2ParseButton.onclick=()=>{
+ try{
+  const c=parseCcf(JSON.parse($("p2-ccfolia-json").value));
+  applyP2Form(c);
+  const best=chooseBestAttack(c.attacks||[]);
+  const g=(c.attacks||[]).find(a=>a.kind==="grapple");
+  $("p2-import-result").textContent=`読み込み成功：${c.name} / DB ${c.db||"0"} / 自動攻撃：${best.name} ${best.skill}% ${best.damage}（期待値 ${attackExpectedValue(best).toFixed(2)}）${g?` / 組み付き ${g.skill}% ${g.damage}`:""}`;
+  toast("PLAYER 2のJSONを読み込みました");
+ }catch(e){
+  console.error(e);
+  $("p2-import-result").textContent="JSONを読み込めませんでした。JSON全文を確認してください。";
+  toast("PLAYER 2のJSON読み込みに失敗しました");
+ }
+};
