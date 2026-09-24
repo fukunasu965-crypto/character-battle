@@ -384,7 +384,8 @@ function checkEnd(){
    if(isHost)sendNet("result",{winnerIndex,loserIndex});
    setTimeout(()=>showOnlineResult(winnerIndex,myPlayerIndex),1850);
   }else{
-   setTimeout(()=>showResult(winnerIndex,loserIndex),1850);
+   // COM戦では画面を見ているプレイヤーはPLAYER 1。COM(PLAYER 2)勝利時はDEFEAT演出。
+   setTimeout(()=>showResult(winnerIndex,loserIndex,comMode?0:null),1850);
   }
   window.dispatchEvent(new CustomEvent("character-battle-result",{detail:{winnerIndex,loserIndex}}));
  }
@@ -662,7 +663,10 @@ function render(){
    render._syncTimer=setTimeout(syncState,0);
  }
  chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DEX",c.dex)+stat("APP",c.app)+stat("POW",c.pow)+stat("INT",c.int)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.attackBonus?`<span class="effect-chip buff">分析済み：次攻撃 命中+${c.state.attackBonus} / 相手回避-${c.state.analyzedDodgePenalty||15}</span>`:""}${c.state.taunted?`<span class="effect-chip debuff">挑発：次行動は攻撃のみ / 命中-${c.state.tauntPenalty||10} / ダメージ+2</span>`:""}${c.state.intimidated?`<span class="effect-chip buff">威圧：次の被ダメージ ${c.state.intimidated===0.25?"1/4":"半減"}</span>`:""}${c.state.nextApPenalty?'<span class="effect-chip debuff">体勢崩れ：次のAP回復なし</span>':""}${c.state.spirit?`<span class="effect-chip buff">闘志 ${c.state.spirit}：次攻撃 ダメージ+${c.state.spirit}${c.state.spirit>=3?" / 命中+10":""}</span>`:""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
- $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${cur().state.ap}`;
+ $("round").textContent=`ROUND ${battle.round}`;
+ const uiActor=battle.pending?chars[battle.pending.defender]:cur();
+ $("turn-name").textContent=battle.pending?`${uiActor.name}のリアクション`:`${cur().name}のターン`;
+ $("ap").textContent=`AP ${uiActor.state.ap}`;
  const actor=chars[battle.turn];
  const pen=0;
  const setDetail=(id,text)=>{const el=$(id);if(el)el.textContent=text};
@@ -695,7 +699,14 @@ function render(){
  scheduleCom();
 }
 
- if(battle.pending){const d=chars[battle.pending.defender];$("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / COST 1 AP`;$("counter-detail").textContent=`判定 ${counterSkill(d)}% / COST 2 AP`;$("dodge").disabled=d.state.ap<1||!canActHere();$("counter").disabled=d.state.ap<2||!canActHere();$("take").disabled=!canActHere()}
+ if(battle.pending){
+ const d=chars[battle.pending.defender];
+ $("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / COST 1 AP / 所持 ${d.state.ap}`;
+ $("counter-detail").textContent=`判定 ${counterSkill(d)}% / COST 2 AP / 所持 ${d.state.ap}`;
+ $("dodge").disabled=d.state.ap<1||!canActHere();
+ $("counter").disabled=d.state.ap<2||!canActHere();
+ $("take").disabled=!canActHere();
+}
  $("log").innerHTML=battle.log.map(x=>`<div class="${x.cls||""}">${String(x.text).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;;if(comMode)scheduleCom();
 }
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{const pl=btn.dataset.player;document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));$(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");$(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json")}));
@@ -704,7 +715,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.66");
+setOnlineStatus("オンライン：操作できます / BUILD 2.67");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -737,7 +748,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.66")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.67")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
