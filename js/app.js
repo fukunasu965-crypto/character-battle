@@ -373,7 +373,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.22");
+setOnlineStatus("オンライン：操作できます / BUILD 2.23");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -405,9 +405,21 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.22")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.23")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
 document.addEventListener("pointerup",resultReturnToLobby,true);
 document.addEventListener("click",resultReturnToLobby,true);
+
+// v2.23 rule help
+(()=>{
+ const ov=document.getElementById("help-overlay");
+ const open=document.getElementById("help-open-btn");
+ const close=document.getElementById("help-close-btn");
+ if(!ov||!open||!close)return;
+ open.addEventListener("click",()=>ov.classList.remove("hidden"));
+ close.addEventListener("click",()=>ov.classList.add("hidden"));
+ ov.addEventListener("click",e=>{if(e.target===ov)ov.classList.add("hidden")});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape")ov.classList.add("hidden")});
+})();

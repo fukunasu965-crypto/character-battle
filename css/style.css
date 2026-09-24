@@ -77,3 +77,17 @@
 @media(min-width:850px){.character-grid{grid-template-columns:1fr 1fr!important}}
 
 #log .flavor{font-style:italic;opacity:.88;padding-left:.4em;border-left:2px solid currentColor;margin:.15em 0;}
+
+.help-open-btn{position:fixed;right:16px;top:16px;z-index:9000;border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:9px 14px;background:rgba(10,12,18,.88);color:#fff;font-weight:800;cursor:pointer;backdrop-filter:blur(8px)}
+.help-overlay{position:fixed;inset:0;z-index:12000;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:18px}
+.help-overlay.hidden{display:none!important}
+.help-panel{position:relative;width:min(820px,100%);max-height:88vh;overflow:auto;border-radius:18px;padding:26px;background:#151821;color:#f5f5f5;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.help-panel h2{margin:0 42px 8px 0;font-size:28px;letter-spacing:.08em}
+.help-lead{margin:0 0 20px;opacity:.9}
+.help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.help-grid section{padding:15px;border:1px solid rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.04)}
+.help-grid h3{margin:0 0 10px;font-size:17px}
+.help-grid p{margin:7px 0;line-height:1.55;font-size:14px}
+.help-note{opacity:.78}
+.help-close-btn{position:absolute;right:15px;top:12px;width:38px;height:38px;border:0;border-radius:50%;font-size:27px;line-height:1;background:rgba(255,255,255,.1);color:#fff;cursor:pointer}
+@media(max-width:650px){.help-open-btn{right:10px;top:10px;padding:8px 11px}.help-panel{padding:22px 15px 18px}.help-grid{grid-template-columns:1fr}.help-panel h2{font-size:23px}}
