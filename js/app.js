@@ -125,56 +125,49 @@ function setupConnection(c,hostSide){
  conn.on("close",()=>setOnlineStatus("接続が切れました"));
  conn.on("error",e=>{console.error(e);setOnlineStatus("通信エラー")});
 }
+function cleanRoomCode(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
 function hostOnline(){
- setOnlineStatus("オンライン：部屋を作成中…");
  try{
+  const code=cleanRoomCode($("host-code").value);
+  if(code.length!==4)throw new Error("4桁の数字を入力してください");
+  $("host-code").value=code;
   save("p1");
   if(typeof Peer!=="function")throw new Error("PeerJSが読み込まれていません");
   if(peer&&!peer.destroyed)peer.destroy();
   netMode="online";isHost=true;myPlayerIndex=0;
-  $("room-box").classList.remove("hidden");$("room-display").textContent="発行中…";
-  peer=new Peer();
-  peer.on("open",id=>{
-   $("room-box").classList.remove("hidden");$("room-display").textContent=id;
-   setOnlineStatus("オンライン：部屋作成完了");
-  });
+  $("room-box").classList.remove("hidden");$("room-display").textContent=code;
+  setOnlineStatus("オンライン：部屋を作成中…");
+  peer=new Peer("character-battle-"+code);
+  peer.on("open",()=>setOnlineStatus("オンライン：部屋作成完了。相手を待っています"));
   peer.on("connection",c=>{
-   setOnlineStatus("オンライン：相手が接続しました");
-   setupConnection(c,true);
+    conn=c;
+    setOnlineStatus("オンライン：相手から接続要求を受信…");
+    setupConnection(c,true);
   });
   peer.on("error",e=>{
-   console.error(e);
-   $("room-box").classList.remove("hidden");$("room-display").textContent="作成失敗";
-   setOnlineStatus("オンラインエラー："+(e.type||e.message||"不明"));
+    console.error(e);
+    setOnlineStatus(e?.type==="unavailable-id"?"その4桁コードは既に使用中です":"オンラインエラー："+(e?.type||e?.message||"不明"));
   });
- }catch(e){
-  console.error(e);
-  $("room-box").classList.remove("hidden");$("room-display").textContent="作成失敗";
-  setOnlineStatus("オンラインエラー："+e.message);
- }
+ }catch(e){console.error(e);setOnlineStatus("部屋作成エラー："+e.message)}
 }
 function joinOnline(){
- setOnlineStatus("オンライン：接続中…");
  try{
+  const code=cleanRoomCode($("join-code").value);
+  if(code.length!==4)throw new Error("4桁の数字を入力してください");
+  $("join-code").value=code;
   save("p1");
   if(typeof Peer!=="function")throw new Error("PeerJSが読み込まれていません");
-  const code=$("join-code").value.trim();
-  if(!code)throw new Error("ルームコードを入力してください");
   if(peer&&!peer.destroyed)peer.destroy();
   netMode="online";isHost=false;myPlayerIndex=1;
+  setOnlineStatus("オンライン：接続中…");
   peer=new Peer();
   peer.on("open",()=>{
-   const c=peer.connect(code,{serialization:"json"});
-   setupConnection(c,false);
+    const c=peer.connect("character-battle-"+code,{serialization:"json",reliable:true});
+    conn=c;
+    setupConnection(c,false);
   });
-  peer.on("error",e=>{
-   console.error(e);
-   setOnlineStatus("オンラインエラー："+(e.type||e.message||"不明"));
-  });
- }catch(e){
-  console.error(e);
-  setOnlineStatus("オンラインエラー："+e.message);
- }
+  peer.on("error",e=>{console.error(e);setOnlineStatus("オンラインエラー："+(e?.type||e?.message||"不明"))});
+ }catch(e){console.error(e);setOnlineStatus("参加エラー："+e.message)}
 }
 function canActHere(){
  if(netMode==="local")return true;
@@ -297,6 +290,11 @@ function render(){
 }
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{const pl=btn.dataset.player;document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));$(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");$(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json")}));
 $("parse-json").addEventListener("click",()=>importJson("p1"));$("p2-parse-json").addEventListener("click",()=>importJson("p2"));$("save-char").addEventListener("click",()=>save("p1"));$("save-p2").addEventListener("click",()=>save("p2"));$("local-start").addEventListener("click",start);
+$("host-code").addEventListener("input",e=>e.target.value=cleanRoomCode(e.target.value));
+$("join-code").addEventListener("input",e=>e.target.value=cleanRoomCode(e.target.value));
+$("host-btn").addEventListener("click",hostOnline);
+$("join-btn").addEventListener("click",joinOnline);
+setOnlineStatus("オンライン：操作できます / BUILD 2.11");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 $("rematch-btn").addEventListener("click",()=>{
@@ -312,17 +310,3 @@ $("copy-room").addEventListener("click",()=>toast("ルームコード："+$("roo
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p1",c);preview("p1",c)}}catch(e){}
 
-window.__cbOnlineBridge={
- hostConnected(c){
-   peer=window.__cbPeer||peer;
-   conn=c;
-   netMode="online";isHost=true;myPlayerIndex=0;
-   setupConnection(c,true);
- },
- joinConnected(c){
-   peer=window.__cbPeer||peer;
-   conn=c;
-   netMode="online";isHost=false;myPlayerIndex=1;
-   setupConnection(c,false);
- }
-};
