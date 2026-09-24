@@ -354,11 +354,57 @@ function rollEffect(z,who,context="攻撃"){
  return "";
 }
 function rawDamage(p){let n=rollDamageExpr(p.weapon.damage);if(p.type==="heavy")n+=rollDice(4);if(p.result.type==="critical")n*=2;if(p.result.type==="oneCritical")n+=Math.ceil(damageExpected(p.weapon.damage));return n}
+
+const stunFlavor=[
+ "{D}は強烈な衝撃によろめく。意識が一瞬遠のいた！",
+ "{D}の視界が揺らぐ。大きな一撃が意識を刈り取りにかかる！",
+ "{D}は膝をつきかける。ここで踏みとどまれるか！",
+ "{D}に重い衝撃が走る。身体が言うことを聞かない！"
+];
+function checkStun(defenderIndex,hpBefore,damage){
+ const d=chars[defenderIndex];
+ if(!d||d.hp<=0||damage<=0)return;
+ // "現HP" means HP immediately before this damage was applied.
+ if(damage < hpBefore/2)return;
+ const con=clamp((d.con||0)*5),r=rollD100(),z=judgeRoll(r,con);
+ const text=stunFlavor[Math.floor(Math.random()*stunFlavor.length)].replaceAll("{D}",d.name);
+ battle.log.push({text:"◆ "+text,cls:"flavor"});
+ battle.log.push({text:`気絶ロール CON×5 ${r}/${con} → ${z.text}`,cls:"special"});
+ if(z.rank<3){
+  d.state.nextApPenalty=Math.max(d.state.nextApPenalty||0,1);
+  battle.log.push({text:`💫 ${d.name}は衝撃に耐えきれない！ 次のターンAP -1。`,cls:"special"});
+  animate(defenderIndex,"hit");
+ }else{
+  battle.log.push({text:`✓ ${d.name}は意識を保った！ AP減少なし。`,cls:"special"});
+ }
+}
 function deal(extra=0){
- const p=battle.pending,d=chars[p.defender],n0=rawDamage(p)+(p.spirit||0)+extra;let n=n0;
+ const p=battle.pending,d=chars[p.defender];
+
+ // 組みつきは命中しただけではダメージなし。
+ // STR対抗に成功した場合のみダメージ＋次ターンAP-1。
+ if(p.type==="grapple"){
+  const a=chars[p.attacker],target=clamp(50+(a.str-d.str)*5),r=rollD100(),z=judgeRoll(r,target);
+  battle.log.push({text:`STR対抗 ${r}/${target} → ${z.text}`,cls:"special"});
+  if(z.rank<3){
+   battle.log.push({text:`${d.name}は拘束を振りほどいた！ ダメージなし。`,cls:"special"});
+   return;
+  }
+  let n=rawDamage(p)+(p.spirit||0)+extra;
+  if(d.state.guard){n=Math.max(0,n-2);d.state.guard=false}
+  const hpBefore=d.hp;
+  d.hp=Math.max(0,d.hp-n);
+  d.state.nextApPenalty=1;
+  animate(p.defender,"hit");flavor("hit",p);
+  battle.log.push({text:`拘束成功！ ${p.weapon.name} → ${n}ダメージ / ${d.name}の次ターンAP -1`,cls:"damage"});
+  checkStun(p.defender,hpBefore,n);
+  checkEnd();
+  return;
+ }
+
+ const n0=rawDamage(p)+(p.spirit||0)+extra;let n=n0;
  if(d.state.guard){if(p.type==="heavy"){d.state.guard=false;battle.log.push({text:"💥 ガードブレイク！",cls:"special"})}else{n=Math.max(0,n-2);d.state.guard=false}}
- d.hp=Math.max(0,d.hp-n);animate(p.defender,"hit");flavor("hit",p);battle.log.push({text:`${p.weapon.name} → ${n}ダメージ！`,cls:"damage"});checkEnd();
- if(p.type==="grapple"&&!battle.gameOver){const a=chars[p.attacker],target=clamp(50+(a.str-d.str)*5),r=rollD100(),z=judgeRoll(r,target);battle.log.push({text:`STR対抗 ${r}/${target} → ${z.text}`,cls:"special"});if(z.rank>=3){d.state.nextApPenalty=1;battle.log.push({text:`拘束成功：${d.name}の次ターンAP -1`,cls:"special"})}}
+ const hpBefore=d.hp;d.hp=Math.max(0,d.hp-n);animate(p.defender,"hit");flavor("hit",p);battle.log.push({text:`${p.weapon.name} → ${n}ダメージ！`,cls:"damage"});checkStun(p.defender,hpBefore,n);checkEnd();
 }
 function attack(type){
  if(battle.pending||battle.gameOver)return;const c=cur(),cost=type==="heavy"?2:1;if(battle.ap<cost)return;
@@ -421,7 +467,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.24");
+setOnlineStatus("オンライン：操作できます / BUILD 2.27");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -453,7 +499,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.24")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.27")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
