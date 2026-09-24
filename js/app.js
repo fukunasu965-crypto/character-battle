@@ -74,6 +74,7 @@ function fresh(base){
 }
 function start(){
  try{
+  clearResult();
   save("p1");save("p2");
   if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
   chars=[fresh(p1),fresh(p2)];
@@ -85,7 +86,35 @@ function start(){
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending&&battle.ap<=0)endTurn();render()}
 function endTurn(){battle.turn=1-battle.turn;if(battle.turn===0)battle.round++;const c=cur();battle.ap=Math.max(0,2-(c.state.nextApPenalty||0));c.state.nextApPenalty=0;c.state.rp=2;c.state.normalAttacks=0;battle.log.push({text:`--- ROUND ${battle.round} / ${c.name} ---`,cls:"special"})}
-function checkEnd(){const i=chars.findIndex(c=>c.hp<=0);if(i>=0){battle.gameOver=true;battle.log.push({text:`${chars[i].name} 戦闘不能！`,cls:"damage"},{text:`🏆 ${chars[1-i].name} WIN！`,cls:"special"})}}
+function clearResult(){
+ $("result-overlay").classList.add("hidden");
+ $("fighter1")?.classList.remove("is-winner","is-loser");
+ $("fighter2")?.classList.remove("is-winner","is-loser");
+}
+function showResult(winnerIndex,loserIndex){
+ $("result-winner").textContent="🏆 "+chars[winnerIndex].name;
+ $("result-loser").textContent=chars[loserIndex].name+" は戦闘不能";
+ $("fighter"+(winnerIndex+1))?.classList.add("is-winner");
+ $("fighter"+(loserIndex+1))?.classList.add("is-loser");
+ $("result-overlay").classList.remove("hidden");
+}
+function rematch(){
+ clearResult();
+ chars=[fresh(p1),fresh(p2)];
+ battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+ battle.log.push({text:"再戦開始！ "+cur().name+"のターン。",cls:"special"});
+ render();
+}
+function checkEnd(){
+ const loserIndex=chars.findIndex(c=>c.hp<=0);
+ if(loserIndex>=0&&!battle.gameOver){
+  const winnerIndex=1-loserIndex;
+  battle.gameOver=true;
+  battle.log.push({text:chars[loserIndex].name+" 戦闘不能！",cls:"damage"});
+  battle.log.push({text:"🏆 "+chars[winnerIndex].name+" WIN！",cls:"special"});
+  setTimeout(()=>showResult(winnerIndex,loserIndex),220);
+ }
+}
 function rawDamage(p){let n=rollDamageExpr(p.weapon.damage);if(p.type==="heavy")n+=rollDice(4);if(p.result.type==="critical")n*=2;if(p.result.type==="oneCritical")n+=Math.ceil(damageExpected(p.weapon.damage));return n}
 function deal(extra=0){
  const p=battle.pending,d=chars[p.defender],n0=rawDamage(p)+(p.spirit||0)+extra;let n=n0;
@@ -141,6 +170,8 @@ document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()
 $("parse-json").addEventListener("click",()=>importJson("p1"));$("p2-parse-json").addEventListener("click",()=>importJson("p2"));$("save-char").addEventListener("click",()=>save("p1"));$("save-p2").addEventListener("click",()=>save("p2"));$("local-start").addEventListener("click",start);
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
+$("rematch-btn").addEventListener("click",rematch);
+$("result-lobby-btn").addEventListener("click",()=>location.reload());
 $("host-btn").addEventListener("click",()=>toast("オンライン対戦は安定版で再実装予定です"));
 $("join-btn").addEventListener("click",()=>toast("オンライン対戦は安定版で再実装予定です"));
 $("copy-room").addEventListener("click",()=>{});
