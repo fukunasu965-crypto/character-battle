@@ -109,3 +109,25 @@
 .dice-cinematic.rolling .dice-number{filter:blur(.7px)}
 @keyframes diceRollBox{0%{transform:translate(-2px,1px) rotate(-.5deg)}50%{transform:translate(2px,-1px) rotate(.5deg)}100%{transform:translate(-2px,1px) rotate(-.5deg)}}
 .bgm-toggle{position:fixed;right:18px;top:62px;z-index:9000;border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:7px 12px;background:rgba(12,14,20,.82);color:#fff;font-weight:800;cursor:pointer;backdrop-filter:blur(8px)}
+
+/* v2.30 full-screen percentile dice presentation */
+.dice-cinematic{background:radial-gradient(circle at center,rgba(15,18,28,.25),rgba(0,0,0,.78));overflow:hidden}
+.dice-speedlines{position:absolute;inset:-30%;opacity:0;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.13) 0deg 1deg,transparent 1deg 8deg);mask-image:radial-gradient(circle,transparent 0 10%,#000 35%);transform:scale(1.5)}
+.dice-cinematic.rolling .dice-speedlines{opacity:.45;animation:speedSpin .55s linear infinite}
+.dice-stage{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:min(8vw,110px);perspective:900px}
+.percentile-die{width:clamp(110px,16vw,220px);aspect-ratio:1;display:grid;place-items:center;clip-path:polygon(50% 0,90% 20%,100% 62%,72% 100%,28% 100%,0 62%,10% 20%);background:linear-gradient(145deg,#fafafa,#8f96a5 48%,#303643);box-shadow:inset 0 0 0 5px rgba(255,255,255,.35),0 28px 65px rgba(0,0,0,.55);font-weight:1000;font-size:clamp(34px,6vw,76px);color:#111;text-shadow:0 1px #fff}
+.dice-cinematic.rolling .percentile-die.tens{animation:dieTumbleA .16s linear infinite}
+.dice-cinematic.rolling .percentile-die.ones{animation:dieTumbleB .14s linear infinite}
+.dice-cinematic.impact .percentile-die{animation:dieLand .28s cubic-bezier(.2,1.7,.4,1) both}
+.dice-cinematic-inner{position:absolute;left:50%;bottom:8vh;transform:translateX(-50%);min-width:min(520px,86vw);padding:12px 28px;background:rgba(7,9,14,.82)}
+.dice-number{font-size:clamp(58px,10vw,118px)}
+.dice-result{font-size:clamp(24px,4vw,52px)}
+.dice-cinematic.critical{background:radial-gradient(circle,rgba(120,91,15,.20),rgba(0,0,0,.82))}
+.dice-cinematic.fumble{background:radial-gradient(circle,rgba(120,10,10,.28),rgba(0,0,0,.86))}
+.dice-cinematic.critical .dice-result{text-shadow:0 0 18px rgba(255,255,255,.7)}
+.dice-cinematic.fumble .dice-result{text-shadow:0 0 18px rgba(255,255,255,.35)}
+@keyframes speedSpin{to{transform:scale(1.5) rotate(20deg)}}
+@keyframes dieTumbleA{0%{transform:translate(-28vw,-18vh) rotateX(0) rotateY(0) rotateZ(0) scale(.65)}50%{transform:translate(4vw,4vh) rotateX(190deg) rotateY(240deg) rotateZ(130deg) scale(1.05)}100%{transform:translate(0,0) rotateX(360deg) rotateY(480deg) rotateZ(300deg) scale(.92)}}
+@keyframes dieTumbleB{0%{transform:translate(30vw,-22vh) rotateX(0) rotateY(0) rotateZ(0) scale(.62)}50%{transform:translate(-5vw,7vh) rotateX(230deg) rotateY(180deg) rotateZ(-150deg) scale(1.08)}100%{transform:translate(0,0) rotateX(430deg) rotateY(360deg) rotateZ(-320deg) scale(.92)}}
+@keyframes dieLand{0%{transform:scale(1.18) translateY(-18px)}55%{transform:scale(.9) translateY(7px)}100%{transform:scale(1) translateY(0)}}
+@media(max-width:650px){.dice-stage{gap:5vw}.percentile-die{width:31vw}.dice-cinematic-inner{bottom:6vh}}
