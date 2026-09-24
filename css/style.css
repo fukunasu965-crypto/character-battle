@@ -75,3 +75,5 @@
 .character-card .primary{width:100%;margin-top:14px}
 .play-card{margin-top:10px}
 @media(min-width:850px){.character-grid{grid-template-columns:1fr 1fr!important}}
+
+#log .flavor{font-style:italic;opacity:.88;padding-left:.4em;border-left:2px solid currentColor;margin:.15em 0;}
