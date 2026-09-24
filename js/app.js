@@ -1,7 +1,7 @@
 
 "use strict";
 const $=id=>document.getElementById(id);
-let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
+let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null}, importedStats={p1:null,p2:null};
 let p1=null,p2=null,chars=[],battle=null;
 let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false,remoteIntent=false,comMode=false,comThinking=false;
 
@@ -14,18 +14,21 @@ function bindImage(input,preview,key){
 function read(side){
  const pre=side==="p1"?"char":"p2";
  const attacks=importedAttacks[side]||[{name:"攻撃",skill:num(pre+"-atk"),damage:$(pre+"-dmg").value||"1D4+1",kind:"damage"}];
- return {name:$(pre+"-name").value.trim()||side.toUpperCase(),maxHp:num(pre+"-hp")||10,maxMp:10,mp:10,str:num(pre+"-str")||10,dex:num(pre+"-dex")||10,app:10,pow:10,int:10,
- attack:num(pre+"-atk")||50,dodge:num(pre+"-dodge")||40,firstAid:num(pre+"-aid")||30,image:imageData[side],attacks};
+ const st=importedStats[side]||{};
+ return {name:$(pre+"-name").value.trim()||side.toUpperCase(),maxHp:num(pre+"-hp")||10,maxMp:Number(st.maxMp??10),mp:Number(st.maxMp??10),str:num(pre+"-str")||10,dex:num(pre+"-dex")||10,app:Number(st.app??10),pow:Number(st.pow??10),int:Number(st.int??10),db:st.db||"0",
+ attack:num(pre+"-atk")||50,dodge:num(pre+"-dodge")||40,firstAid:num(pre+"-aid")||30,image:imageData[side]||st.image||"",attacks};
 }
 function apply(side,c){
  const pre=side==="p1"?"char":"p2", best=chooseBestAttack(c.attacks||[]);
  importedAttacks[side]=c.attacks||[];
+ importedStats[side]={maxMp:Number(c.maxMp??10),app:Number(c.app??10),pow:Number(c.pow??10),int:Number(c.int??10),db:c.db||"0",image:c.image||""};
+ if(c.image&&!imageData[side])imageData[side]=c.image;
  $(pre+"-name").value=c.name;$(pre+"-hp").value=c.maxHp;$(pre+"-str").value=c.str;$(pre+"-dex").value=c.dex;
  $(pre+"-atk").value=best.skill;$(pre+"-dmg").value=best.damage;$(pre+"-dodge").value=c.dodge;$(pre+"-aid").value=c.firstAid;
 }
 function preview(side,c){
  const best=chooseBestAttack(c.attacks||[]);
- $((side==="p1"?"my":"p2")+"-preview").textContent=`${c.name} ｜ HP ${c.maxHp} ｜ STR ${c.str} ｜ DEX ${c.dex} ｜ ${best.name} ${best.skill}% / ${best.damage} ｜ 回避 ${c.dodge}%`;
+ $((side==="p1"?"my":"p2")+"-preview").textContent=`${c.name} ｜ HP ${c.maxHp} / MP ${c.maxMp??10} ｜ STR ${c.str} ｜ DEX ${c.dex} ｜ APP ${c.app??10} ｜ POW ${c.pow??10} ｜ INT ${c.int??10} ｜ ${best.name} ${best.skill}% / ${best.damage} ｜ 回避 ${c.dodge}%`;
 }
 function save(side){
  const c=read(side); if(side==="p1"){p1=c;localStorage.setItem("cb-character",JSON.stringify(c))}else p2=c;
@@ -253,21 +256,27 @@ function comStep(){
  if(!comIsActor())return;
  const c=chars[1];
  if(battle.pending){
-  const p=battle.pending;
-  // Prefer a viable defense; low RP falls back to taking the hit.
   if(c.state.rp>=2 && c.skills.dodge>=45)return action("dodge");
   if(c.state.rp>=1 && c.skills.attack>=55)return action("counter");
   return action("take");
  }
- // Simple, readable AI: heal when hurt, occasionally prepare, otherwise attack.
+ if(c.state.taunted){
+   if(battle.ap>=2 && Math.random()<0.35)return action("heavy");
+   if(battle.ap>=1)return action("attack");
+   c.state.taunted=false;
+   battle.log.push({text:`${c.name}は攻撃に必要なAPがなく、挑発状態が解除された。`,cls:"special"});
+ }
  const hpRate=c.hp/Math.max(1,c.maxHp);
  if(battle.ap>=2 && hpRate<=0.35 && c.skills.firstAid>=35)return action("heal");
- if(battle.ap>=1 && c.state.attackBonus===0 && Math.random()<0.16)return action("observe");
+ if(c.state.attackBonus===0 && Math.random()<0.16)return action("analyze");
+ if(c.mp>=2 && !foe().state.intimidated && Math.random()<0.10)return action("intimidate");
+ if(!foe().state.taunted && Math.random()<0.08)return action("taunt");
  if(battle.ap>=1 && !c.state.guard && Math.random()<0.12)return action("guard");
  const g=grapple(c);
  if(battle.ap>=1 && g && g.skill>=60 && Math.random()<0.14)return action("grapple");
  if(battle.ap>=2 && Math.random()<0.28)return action("heavy");
- return action("attack");
+ if(battle.ap>=1)return action("attack");
+ return action("analyze");
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending)endTurn();render()}
@@ -339,7 +348,7 @@ function checkEnd(){
 let bgmEnabled=true;
 const battleBgm=new Audio("audio/battle.mp3");
 battleBgm.loop=true;
-battleBgm.volume=0.05;
+battleBgm.volume=0.05
 battleBgm.preload="auto";
 
 // v2.35: ダイスの画面演出・効果音は使用しない
@@ -348,12 +357,12 @@ function showDiceFx(roll,target,z,label="1D100",onDone=null){
 }
 
 function startBattleBgm(){
- if(!bgmEnabled)return;
+ if(!bgmEnabled||!battleBgm.paused)return;
  battleBgm.play().catch(()=>{});
 }
-function stopBattleBgm(){
+function stopBattleBgm(reset=false){
  battleBgm.pause();
- battleBgm.currentTime=0;
+ if(reset)battleBgm.currentTime=0;
 }
 const battleFlavor={
  attack:[
@@ -493,7 +502,7 @@ function action(id){
  if(id==="dodge"||id==="counter"||id==="take")return react(id);
  if(battle.pending)return;const c=cur();
  if(id==="taunt"){
-  const skill=specialSkill(c,"app"),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,"TAUNT / APP×5");
+  const skill=clamp(specialSkill(c,"app")-activePenalty(c)),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,"TAUNT / APP×5");
   battle.log.push({text:`挑発 APP×5 ${r}/${skill} → ${z.text}`,cls:"special"});
   if(z.rank>=3){foe().state.taunted=true;battle.log.push({text:`🔥 ${foe().name}は挑発された！ 次の行動は攻撃系のみ / 与ダメ+2 / 命中-10。`,cls:"special"})}
   return finishAction();
@@ -512,7 +521,7 @@ function action(id){
   return finishAction();
  }
  if(id==="guard"&&battle.ap>=1){c.state.guard=true;battle.ap--;battle.log.push({text:`${c.name}は防御態勢。`});finishAction()}
-  if(id==="heal"&&battle.ap>=2){battle.ap-=2;const r=rollD100(),z=judgeRoll(r,c.skills.firstAid);showDiceFx(r,c.skills.firstAid,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${c.skills.firstAid} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
+  if(id==="heal"&&battle.ap>=2){battle.ap-=2;const healSkill=clamp(c.skills.firstAid-activePenalty(c)),r=rollD100(),z=judgeRoll(r,healSkill);showDiceFx(r,healSkill,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${healSkill} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
  if(netMode==="online"&&isHost&&!applyingNet)syncState();
 }
 function stat(label,v){return `<div class="stat"><span>${label}</span><b>${v}</b></div>`}
@@ -523,7 +532,7 @@ function render(){
    clearTimeout(render._syncTimer);
    render._syncTimer=setTimeout(syncState,0);
  }
- chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.taunted?"<span>挑発</span>":""}${c.state.intimidated?"<span>萎縮</span>":""}${c.state.spirit?`<span>闘志 ${c.state.spirit}</span>`:""}${c.state.guard?"<span>防御</span>":""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
+ chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DEX",c.dex)+stat("APP",c.app)+stat("POW",c.pow)+stat("INT",c.int)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.taunted?"<span>挑発</span>":""}${c.state.intimidated?"<span>萎縮</span>":""}${c.state.spirit?`<span>闘志 ${c.state.spirit}</span>`:""}${c.state.guard?"<span>防御</span>":""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
  $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${battle.ap}`;
  const c=cur(),w=selected(c),g=grapple(c);$("attack-chance").textContent=`判定 ${atkSkill(c)}%`;$("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage}`;$("heavy-chance").textContent=`判定 ${atkSkill(c,"heavy")}%`;$("heavy-detail").textContent=`${w.name} / ${w.damage}+1D4`;$("grapple-chance").textContent=g?`判定 ${g.skill}%`:"技能なし";$("grapple-detail").textContent=g?`${g.damage} / STR対抗`:"組み付きなし";$("heal-chance").textContent=`判定 ${c.skills.firstAid}%`;
  $("analyze-chance").textContent=`INT×5 ${specialSkill(c,"int")}%`;
@@ -545,7 +554,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.36");
+setOnlineStatus("オンライン：操作できます / BUILD 2.37");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -560,7 +569,7 @@ try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p
 // Only "ロビーへ戻る" remains as an action.
 let lobbyReturning=false;
 function resultReturnToLobby(ev){
- stopBattleBgm();
+ stopBattleBgm(true);
  const btn=ev.target?.closest?.("#result-lobby-btn");
  if(!btn||lobbyReturning)return;
  lobbyReturning=true;
@@ -578,7 +587,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.36")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.37")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
