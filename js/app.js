@@ -133,13 +133,15 @@ function setupConnection(c,hostSide){
     showOnlineResult(msg.winnerIndex,myPlayerIndex);
    }
    else if(msg.type==="rematch-request"&&hostSide){
+    setOnlineStatus("オンライン：再戦リクエストを受信");
     startOnlineRematch();
    }
    else if(msg.type==="rematch"&&!hostSide){
+    if(msg.chars&&msg.battle)applyState(msg);
     clearResult();
     $("rematch-btn").disabled=false;
     $("rematch-btn").textContent="再戦する";
-    if(msg.chars&&msg.battle)applyState(msg);
+    setOnlineStatus("オンライン：再戦開始");
    }
   }catch(e){console.error(e);toast("通信処理エラー："+e.message)}
  };
@@ -165,9 +167,10 @@ function setupConnection(c,hostSide){
 }
 
 function startOnlineRematch(){
- if(!isHost||!conn?.open)return;
- // Preserve the original combatants, but rebuild their battle state from full HP/RP/AP.
- const base1=chars[0]||p1, base2=chars[1]||p2;
+ if(!isHost||!conn||!conn.open){toast("オンライン接続がありません");return}
+ const base1=p1||chars[0];
+ const base2=p2||chars[1];
+ if(!base1||!base2){toast("再戦用キャラクター情報がありません");return}
  chars=[fresh(base1),fresh(base2)];
  battle={
   turn:chars[0].dex>=chars[1].dex?0:1,
@@ -175,6 +178,8 @@ function startOnlineRematch(){
   log:[{text:"再戦開始！",cls:"special"}]
  };
  clearResult();
+ $("rematch-btn").disabled=false;
+ $("rematch-btn").textContent="再戦する";
  $("battle-screen").classList.remove("hidden");
  $("battle-screen").classList.add("active");
  render();
@@ -348,34 +353,53 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.17");
+setOnlineStatus("オンライン：操作できます / BUILD 2.19");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
-$("rematch-btn").addEventListener("click",()=>{
- if(netMode==="online"){
+function handleRematchClick(){
+ try{
+  if(netMode!=="online"){rematch();return}
+  if(!conn||!conn.open){toast("オンライン接続が切れています");return}
   if(isHost){
    startOnlineRematch();
   }else{
    sendNet("rematch-request");
    $("rematch-btn").disabled=true;
-   $("rematch-btn").textContent="再戦をリクエスト中…";
+   $("rematch-btn").textContent="再戦リクエスト送信済み";
    toast("再戦をリクエストしました");
   }
- }else{
-  rematch();
+ }catch(e){console.error(e);toast("再戦エラー："+e.message)}
+}
+$("rematch-btn").onclick=handleRematchClick;
+function returnToLobby(){
+ try{
+  // UI first, so even a network cleanup problem cannot trap the player in results.
+  clearResult();
+  battle=null;chars=[];
+  $("battle-screen").classList.add("hidden");
+  $("battle-screen").classList.remove("active");
+  $("lobby").classList.remove("hidden");
+  $("room-box").classList.add("hidden");
+  $("room-display").textContent="";
+  $("rematch-btn").disabled=false;
+  $("rematch-btn").textContent="再戦する";
+  setOnlineStatus("オンライン：操作できます / BUILD 2.19");
+  window.scrollTo(0,0);
+
+  const oldConn=conn,oldPeer=peer;
+  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
+  try{if(oldConn)oldConn.close()}catch(e){console.warn(e)}
+  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
+ }catch(e){
+  console.error(e);
+  // Last-resort local navigation without reload.
+  const ov=$("result-overlay"); if(ov)ov.classList.add("hidden");
+  const bs=$("battle-screen"); if(bs)bs.classList.add("hidden");
+  const lo=$("lobby"); if(lo)lo.classList.remove("hidden");
+  toast("ロビー復帰処理の一部でエラー："+e.message);
  }
-});
-$("result-lobby-btn").addEventListener("click",()=>{
- clearResult();
- if(conn){try{conn.close()}catch(e){}}
- if(peer){try{peer.destroy()}catch(e){}}
- conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
- battle=null;chars=[];
- $("battle-screen").classList.add("hidden");$("battle-screen").classList.remove("active");
- $("lobby").classList.remove("hidden");$("room-box").classList.add("hidden");$("room-display").textContent="";
- setOnlineStatus("オンライン：操作できます / BUILD 2.17");
- window.scrollTo({top:0,behavior:"smooth"});
-});
+}
+$("result-lobby-btn").onclick=returnToLobby;
 
 
 $("copy-room").addEventListener("click",()=>toast("ルームコード："+$("room-display").textContent));
