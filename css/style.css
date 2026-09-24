@@ -62,3 +62,7 @@
 .p2-import h4{margin:0 0 6px;color:#8db7ff}
 .p2-import textarea{display:block;width:100%;min-height:150px;box-sizing:border-box;margin:10px 0;padding:10px;border-radius:8px}
 .p2-import button{width:100%;min-height:44px}
+
+.player-setup-card{margin-top:20px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#111823}
+.player-setup-card textarea{width:100%;min-height:150px;box-sizing:border-box;margin:8px 0 10px}
+.player-setup-card>button{width:100%;margin-bottom:10px}

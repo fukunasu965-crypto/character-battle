@@ -13,13 +13,12 @@ const $=id=>document.getElementById(id);let myCharacter=null,remoteCharacter=nul
 function toast(t){$("toast").textContent=t;$("toast").classList.add("show");setTimeout(()=>$("toast").classList.remove("show"),1600)}
 function val(id){return +$(id).value}
 function readManual(){let attacks=importedAttacks.p1||[{name:"攻撃",skill:val("char-atk"),damage:$("char-dmg").value||"1d4+1",kind:"damage"}];return{name:$("char-name").value.trim()||"探索者",maxHp:val("char-hp"),str:val("char-str"),dex:val("char-dex"),attack:val("char-atk"),dodge:val("char-dodge"),firstAid:val("char-aid"),image:imageData.p1,attacks}}
-function applyForm(c){importedAttacks.p1=c.attacks||null;$("char-name").value=c.name;if(c.image){imageData.p1=c.image;$("char-image-preview").innerHTML=`<img src="${c.image}">`;}$("char-hp").value=c.maxHp;$("char-str").value=c.str||50;$("char-dex").value=c.dex;$("char-atk").value=c.attack;$("char-dodge").value=c.dodge;$("char-aid").value=c.firstAid;if(c.attacks?.[0])$("char-dmg").value=c.attacks[0].damage||"1d4+1"}
-function applyP2Form(c){
- importedAttacks.p2=c.attacks||null;
- $("p2-name").value=c.name;$("p2-hp").value=c.maxHp;$("p2-str").value=c.str||50;$("p2-dex").value=c.dex;
- $("p2-atk").value=c.attack;$("p2-dodge").value=c.dodge;$("p2-aid").value=c.firstAid;
- let best=chooseBestAttack(c.attacks||[]);$("p2-dmg").value=best.damage||"1d4+1";
- if(c.image){imageData.p2=c.image;$("p2-image-preview").innerHTML=`<img src="${c.image}">`}
+function applyForm(c){
+ importedAttacks.p1=c.attacks||[];
+ $("char-name").value=c.name;$("char-hp").value=c.maxHp;$("char-str").value=c.str;$("char-dex").value=c.dex;
+ let best=chooseBestAttack(c.attacks||[]);
+ $("char-atk").value=best.skill;$("char-dmg").value=best.damage;$("char-dodge").value=c.dodge;$("char-aid").value=c.firstAid;
+ if(c.image){imageData.p1=c.image;$("char-image-preview").innerHTML=`<img src="${c.image}">`}
 }
 function saveChar(){myCharacter=readManual();$("my-preview").textContent=`${myCharacter.name} ｜ HP ${myCharacter.maxHp} ｜ DEX ${myCharacter.dex} ｜ 攻撃 ${myCharacter.attack} ｜ 回避 ${myCharacter.dodge} ｜ 応急手当 ${myCharacter.firstAid}`;localStorage.setItem("cb-character",JSON.stringify(myCharacter));toast("キャラクターを確定しました");if(conn?.open)send({type:"character",character:myCharacter})}
 function showBattle(){$("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");render()}
@@ -55,18 +54,15 @@ $("leave-btn").onclick=()=>location.reload();
 try{let s=JSON.parse(localStorage.getItem("cb-character"));if(s){myCharacter=s;applyForm(s);$("my-preview").textContent=`${s.name} ｜ HP ${s.maxHp} ｜ DEX ${s.dex} ｜ 攻撃 ${s.attack} ｜ 回避 ${s.dodge} ｜ 応急手当 ${s.firstAid}`}}catch(e){}
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
 
-const p2ParseButton=$("p2-parse-json");
-if(p2ParseButton)p2ParseButton.onclick=()=>{
+
+
+const p2JsonBtn=$("p2-parse-json");
+if(p2JsonBtn)p2JsonBtn.addEventListener("click",()=>{
  try{
-  const c=parseCcf(JSON.parse($("p2-ccfolia-json").value));
-  applyP2Form(c);
-  const best=chooseBestAttack(c.attacks||[]);
-  const g=(c.attacks||[]).find(a=>a.kind==="grapple");
-  $("p2-import-result").textContent=`読み込み成功：${c.name} / DB ${c.db||"0"} / 自動攻撃：${best.name} ${best.skill}% ${best.damage}（期待値 ${attackExpectedValue(best).toFixed(2)}）${g?` / 組み付き ${g.skill}% ${g.damage}`:""}`;
-  toast("PLAYER 2のJSONを読み込みました");
- }catch(e){
-  console.error(e);
-  $("p2-import-result").textContent="JSONを読み込めませんでした。JSON全文を確認してください。";
-  toast("PLAYER 2のJSON読み込みに失敗しました");
- }
-};
+   const c=parseCcf(JSON.parse($("p2-ccfolia-json").value));
+   applyP2Form(c);
+   const best=chooseBestAttack(c.attacks);
+   const g=c.attacks.find(a=>a.kind==="grapple");
+   $("p2-import-result").textContent=`読み込み成功：${c.name} / 採用 ${best.name} ${best.skill}% / ${best.damage} / 命中込み期待値 ${attackExpectedValue(best).toFixed(2)}${g?` / 組み付き ${g.skill}%`:""}`;
+ }catch(err){console.error(err);$("p2-import-result").textContent="JSON読み込み失敗：形式を確認してください。";}
+});

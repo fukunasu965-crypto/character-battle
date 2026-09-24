@@ -38,14 +38,20 @@
 
     <article class="card">
       <h3>② 遊び方</h3>
-      <div class="offline-p2"><h4>オフライン PLAYER 2</h4>
-<div class="p2-import">
-  <h4>PLAYER 2：ココフォリアJSON</h4>
-  <p class="hint">ココフォリアのキャラクターJSONを貼り付けて読み込めます。</p>
-  <textarea id="p2-ccfolia-json" placeholder='{"kind":"character","data":{"name":"..."}}'></textarea>
-  <button id="p2-parse-json" type="button">JSONからPLAYER 2を読み込む</button>
-  <div id="p2-import-result" class="hint"></div>
-</div></div><label>キャラクター画像<input id="p2-image" type="file" accept="image/*"></label><div id="p2-image-preview" class="setup-image-preview">NO IMAGE</div><label>名前<input id="p2-name" value="佐藤 クロエ"></label><div class="three"><label>HP<input id="p2-hp" type="number" value="13"></label><label>STR<input id="p2-str" type="number" value="50"></label><label>DEX<input id="p2-dex" type="number" value="55"></label><label>攻撃<input id="p2-atk" type="number" value="65"></label></div><div class="three"><label>ダメージ<input id="p2-dmg" value="1d6"></label><label>回避<input id="p2-dodge" type="number" value="70"></label><label>応急手当<input id="p2-aid" type="number" value="60"></label></div></div><button id="local-start" class="mode"><b>同じPCで対戦</b><small>PLAYER 1 / PLAYER 2 の入力キャラで対戦</small></button>
+      <div class="offline-p2 player-setup-card">
+<h3>PLAYER 2 キャラクター</h3>
+<div class="setup-tabs"><button type="button" class="active">ココフォリアJSON / 手動入力</button></div>
+<label>ココフォリアJSON<textarea id="p2-ccfolia-json" placeholder='{"kind":"character","data":{...}}'></textarea></label>
+<button id="p2-parse-json" type="button">JSONを読み込む</button>
+<div id="p2-import-result" class="hint"></div>
+<label>キャラクター画像<input id="p2-image" type="file" accept="image/*"></label>
+<div id="p2-image-preview" class="setup-image-preview">NO IMAGE</div>
+<label>名前<input id="p2-name" value="PLAYER 2"></label>
+<div class="three"><label>HP<input id="p2-hp" type="number" value="13"></label><label>STR<input id="p2-str" type="number" value="10"></label><label>DEX<input id="p2-dex" type="number" value="10"></label></div>
+<div class="three"><label>攻撃<input id="p2-atk" type="number" value="50"></label><label>攻撃ダメージ<input id="p2-dmg" value="1D4+1"></label><label>回避<input id="p2-dodge" type="number" value="40"></label></div>
+<label>応急手当<input id="p2-aid" type="number" value="30"></label>
+</div>
+<button id="local-start" class="mode"><b>同じPCで対戦</b><small>PLAYER 1 / PLAYER 2 の入力キャラで対戦</small></button>
       <button id="host-btn" class="mode"><b>オンライン部屋を作る</b><small>あなたが PLAYER 1</small></button>
       <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn">参加</button></div>
       <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
