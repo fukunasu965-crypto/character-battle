@@ -3,12 +3,19 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Character Battle</title><link rel="stylesheet" href="css/style.css">
-</head>
+<style>
+.result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
+.result-overlay.hidden{display:none!important}
+.result-card{width:min(760px,94vw)!important;padding:56px 32px!important}
+.result-overlay.result-win .result-title,.result-overlay.result-lose .result-title{font-size:clamp(64px,12vw,140px)!important}
+.result-overlay.result-lose{background:rgba(5,5,7,.98)!important}
+.result-overlay.result-lose .result-card{filter:grayscale(.85)}
+</style></head>
 <body>
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.2</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.4</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -72,7 +79,7 @@
     <h3>③ 遊び方</h3>
     <button id="local-start" class="mode" type="button"><b>同じPCで対戦</b><small>上のPLAYER 1 / PLAYER 2で対戦開始</small></button>
     <button id="host-btn" class="mode" type="button"><b>オンライン部屋を作る</b><small>あなたがPLAYER 1になります</small></button>
-    <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn" type="button">参加</button></div>
+    <div class="join"><input id="room-code" placeholder="部屋コード"><input id="join-code" type="text" placeholder="ルームコードを入力" autocomplete="off"><button id="join-btn" type="button">参加</button><div id="online-status" class="muted">未接続</div></div>
     <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room" type="button">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
     <p class="hint">オンライン参加時はPLAYER 1欄に自分のキャラクターを設定してから参加してください。</p>
   </article>
@@ -122,7 +129,8 @@
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.2 — stable offline rebuild</footer>
+<footer>Character Battle v2.4 — stable offline rebuild</footer>
 </main>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <script src="js/dice.js"></script><script src="js/character.js"></script><script src="js/app.js"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="rematch-btn" class="primary">再戦する</button><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>
