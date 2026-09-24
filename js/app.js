@@ -93,7 +93,7 @@ function applyState(data){
 function setupConnection(c,hostSide){
  conn=c;isHost=hostSide;netMode="online";myPlayerIndex=hostSide?0:1;
  conn.on("open",()=>{
-   setOnlineStatus(hostSide?"相手が接続しました":"ルームに接続しました");
+   setOnlineStatus(hostSide?"オンライン：対戦相手と接続済み":"オンライン：ルームに接続済み");
    if(hostSide){save("p1");sendNet("request-character")}
    else{save("p1");sendNet("character",{character:publicChar(p1)})}
  });
@@ -125,42 +125,55 @@ function setupConnection(c,hostSide){
  conn.on("error",e=>{console.error(e);setOnlineStatus("通信エラー")});
 }
 function hostOnline(){
+ setOnlineStatus("オンライン：部屋を作成中…");
  try{
   save("p1");
-  if(typeof Peer==="undefined")throw new Error("PeerJSの読み込みに失敗しました");
+  if(typeof Peer!=="function")throw new Error("PeerJSが読み込まれていません");
   if(peer&&!peer.destroyed)peer.destroy();
   netMode="online";isHost=true;myPlayerIndex=0;
   $("room-code").textContent="発行中…";
-  setOnlineStatus("ルームを作成しています…");
-  peer=new Peer({debug:2});
+  peer=new Peer();
   peer.on("open",id=>{
-    $("room-code").textContent=id;
-    setOnlineStatus("ルーム作成完了。相手にこのコードを伝えてください");
+   $("room-code").textContent=id;
+   setOnlineStatus("オンライン：部屋作成完了");
   });
-  peer.on("connection",c=>setupConnection(c,true));
-  peer.on("disconnected",()=>setOnlineStatus("シグナリングサーバーから切断されました"));
+  peer.on("connection",c=>{
+   setOnlineStatus("オンライン：相手が接続しました");
+   setupConnection(c,true);
+  });
   peer.on("error",e=>{
-    console.error("PeerJS host error",e);
-    $("room-code").textContent="作成失敗";
-    setOnlineStatus("ルーム作成失敗："+(e.type||e.message||"unknown"));
-    toast("ルーム作成失敗："+(e.type||e.message||"unknown"));
+   console.error(e);
+   $("room-code").textContent="作成失敗";
+   setOnlineStatus("オンラインエラー："+(e.type||e.message||"不明"));
   });
- }catch(e){console.error(e);$("room-code").textContent="作成失敗";setOnlineStatus("ルーム作成失敗："+e.message);toast("ホスト作成エラー："+e.message)}
+ }catch(e){
+  console.error(e);
+  $("room-code").textContent="作成失敗";
+  setOnlineStatus("オンラインエラー："+e.message);
+ }
 }
 function joinOnline(){
+ setOnlineStatus("オンライン：接続中…");
  try{
   save("p1");
-  if(typeof Peer==="undefined")throw new Error("PeerJSの読み込みに失敗しました");
-  const code=$("join-code").value.trim();if(!code)throw new Error("ルームコードを入力してください");
+  if(typeof Peer!=="function")throw new Error("PeerJSが読み込まれていません");
+  const code=$("join-code").value.trim();
+  if(!code)throw new Error("ルームコードを入力してください");
   if(peer&&!peer.destroyed)peer.destroy();
-  netMode="online";isHost=false;myPlayerIndex=1;setOnlineStatus("接続中…");
-  peer=new Peer({debug:2});
+  netMode="online";isHost=false;myPlayerIndex=1;
+  peer=new Peer();
   peer.on("open",()=>{
-    const c=peer.connect(code,{reliable:true,serialization:"json"});
-    setupConnection(c,false);
+   const c=peer.connect(code,{serialization:"json"});
+   setupConnection(c,false);
   });
-  peer.on("error",e=>{console.error("PeerJS join error",e);setOnlineStatus("接続失敗："+(e.type||e.message||"unknown"));toast("オンライン接続エラー："+(e.type||e.message||"unknown"))});
- }catch(e){console.error(e);setOnlineStatus("参加失敗："+e.message);toast("参加エラー："+e.message)}
+  peer.on("error",e=>{
+   console.error(e);
+   setOnlineStatus("オンラインエラー："+(e.type||e.message||"不明"));
+  });
+ }catch(e){
+  console.error(e);
+  setOnlineStatus("オンラインエラー："+e.message);
+ }
 }
 function canActHere(){
  if(netMode==="local")return true;
@@ -188,6 +201,7 @@ function clearResult(){
  $("fighter1")?.classList.remove("is-winner","is-loser");$("fighter2")?.classList.remove("is-winner","is-loser");
 }
 function showResult(winnerIndex,loserIndex,viewerIndex=null){
+ $("rematch-btn").style.display="";
  const ov=$("result-overlay");const didWin=viewerIndex===null||viewerIndex===winnerIndex;
  $("result-title").textContent=didWin?"VICTORY":"DEFEAT";
  $("result-winner").textContent=didWin?"🏆 "+chars[winnerIndex].name:chars[loserIndex].name+" は敗北した";
@@ -195,7 +209,10 @@ function showResult(winnerIndex,loserIndex,viewerIndex=null){
  ov.classList.remove("result-win","result-lose");ov.classList.add(didWin?"result-win":"result-lose");
  $("fighter"+(winnerIndex+1))?.classList.add("is-winner");$("fighter"+(loserIndex+1))?.classList.add("is-loser");ov.classList.remove("hidden");
 }
-function showOnlineResult(winnerIndex,myPlayerIndex){showResult(winnerIndex,1-winnerIndex,myPlayerIndex)}
+function showOnlineResult(winnerIndex,myPlayerIndex){
+ showResult(winnerIndex,1-winnerIndex,myPlayerIndex);
+ $("rematch-btn").style.display="none";
+}
 function rematch(){
  clearResult();
  chars=[fresh(p1),fresh(p2)];

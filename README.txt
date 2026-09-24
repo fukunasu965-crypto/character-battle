@@ -73,3 +73,6 @@ v2.4: PeerJSオンライン対戦を復活。ホストが戦闘計算の正本�
 
 
 v2.5: オンライン部屋作成を修正。手動生成IDをPeerコンストラクタへ渡す方式を廃止し、PeerJS Cloudがopen時に発行した実IDをルームコードとして表示。PeerJS未読込・network/server等のエラーも画面に表示。
+
+
+v2.6: オンラインUI/イベントを一本化。PeerJS公式の new Peer() -> open(id) -> connect/connection フロー。オンライン状態を常時表示。オンライン時は再戦ボタン非表示。
