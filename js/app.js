@@ -305,8 +305,14 @@ $("rematch-btn").addEventListener("click",()=>{
  }else rematch();
 });
 $("result-lobby-btn").addEventListener("click",()=>location.reload());
-$("host-btn").addEventListener("click",hostOnline);
-$("join-btn").addEventListener("click",joinOnline);
+
+
 $("copy-room").addEventListener("click",()=>toast("ルームコード："+$("room-display").textContent));
 bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image-preview","p2");
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p1",c);preview("p1",c)}}catch(e){}
+
+window.__cbOnlineBridge={
+ hostConnected(c){ setupConnection(c,true); },
+ joinConnected(c){ setupConnection(c,false); },
+ setRole(hostSide){ netMode="online";isHost=hostSide;myPlayerIndex=hostSide?0:1;peer=window.__cbPeer||peer; }
+};
