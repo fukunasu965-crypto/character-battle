@@ -52,3 +52,6 @@ v1.10: オフライン対戦を停止させていたbattle.jsのreaction()内Jav
 
 
 v1.11: キャラクター確定ボタンが動かない根本原因を修正。classic script間で重複していたトップレベル const $ をmain.js=el、battle.js=belへ分離。全JS構文チェックとmain.js参照DOM ID整合性チェックを実施。
+
+
+v1.12: 戦闘開始時のDOM不整合を修正。initBattle/renderとHTMLを同期し、欠落していた状態表示・ターン・AP要素を追加。全参照IDと全JS構文を検証済み。

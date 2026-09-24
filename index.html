@@ -8,7 +8,7 @@
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v1.11</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v1.12</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -90,7 +90,8 @@
       <h2 id="name1"></h2>
       <div class="hp-line"><span>HP</span><strong id="hp1"></strong></div><div class="hpbar"><i id="hpbar1"></i></div>
       <div class="stat-grid" id="stats1"></div><div class="effects" id="effects1"></div>
-    </article>
+    <div id="states1" class="states"></div>
+</article>
     <div class="vs">VS</div>
     <article class="fighter" id="fighter2">
       <div class="owner">PLAYER 2</div>
@@ -98,12 +99,14 @@
       <h2 id="name2"></h2>
       <div class="hp-line"><span>HP</span><strong id="hp2"></strong></div><div class="hpbar"><i id="hpbar2"></i></div>
       <div class="stat-grid" id="stats2"></div><div class="effects" id="effects2"></div>
-    </article>
+    <div id="states2" class="states"></div>
+</article>
   </section>
 
   <section class="command card">
     <div class="command-head"><div><h3 id="command-title">行動を選択</h3><p id="resource-line"></p></div><span id="control-note"></span></div>
-    <div id="actions" class="commands">
+    <div class="turn-status"><strong id="turn-name">ターン</strong><span>AP <b id="ap">●●</b></span></div>
+  <div id="actions" class="commands">
       <button id="attack"><b>⚔ 通常攻撃</b><strong class="chance" id="attack-chance"></strong><small id="attack-detail"></small></button>
       <button id="heavy"><b>💥 強攻撃</b><strong class="chance" id="heavy-chance"></strong><small id="heavy-detail"></small></button>
       <button id="guard"><b>🛡 防御</b><strong class="chance">構え</strong><small>被ダメ-2 / 回避・反撃+15</small></button>

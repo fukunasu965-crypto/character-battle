@@ -1,22 +1,18 @@
 function fx(index,type){window.dispatchEvent(new CustomEvent("battlefx",{detail:{index,type}}))}
 let characters=[],battle={round:1,turn:0,ap:2,gameOver:false,pending:null,logs:[]};
 const current=()=>characters[battle.turn],opponent=()=>characters[1-battle.turn],clamp=v=>Math.max(5,Math.min(95,v));
-function initBattle(chars){characters=chars;battle={round:1,turn:chars[0].dex>=chars[1].dex?0:1,ap:2,gameOver:false,pending:null,logs:[]};characters.forEach(c=>{c.state.rp=2;c.state.normalAttacks=0});log("戦闘開始！","special");log(`${current().name}が先攻！`)}
-function exportBattleState(){return JSON.parse(JSON.stringify({characters,battle}))}
-function loadBattleState(s){characters=s.characters;battle=s.battle;render()}
-function log(t,c=""){battle.logs.push({t,c});if(battle.logs.length>100)battle.logs.shift()}
-function selectedAttack(c){return chooseBestAttack(c.attacks||[])}
-function effectiveAttack(c,type="normal"){let base=selectedAttack(c).skill,mod=c.state.attackBonus+(c.state.spirit>=3?10:0);if(type==="heavy")mod-=15;if(type==="normal"&&c.state.normalAttacks>0)mod-=15;return clamp(base+mod)}
-function effectiveDodge(c,observed=false){return clamp(c.skills.dodge+(c.state.guard?15:0)-(observed?15:0))}
-function effectiveCounter(c){return clamp(c.skills.attack-20+(c.state.guard?15:0))}
-function performIntent(a,fromRemote){
- if(battle.gameOver)return;
- let actor=battle.pending?battle.pending.defenderIndex:battle.turn;
- if(netMode==="online"&&myRole===0&&fromRemote&&actor!==1)return;
- if(netMode==="online"&&myRole===0&&!fromRemote&&actor!==0)return;
- if(battle.pending){if(["dodge","counter","take"].includes(a))reaction(a);return}
- if(["attack","heavy","grapple","guard","observe","heal"].includes(a))action(a);
- syncState();render()
+function initBattle(chars){
+ if(!Array.isArray(chars)||chars.length!==2)throw new Error("PLAYER 1 / PLAYER 2 のキャラクターデータが不足しています");
+ characters=chars;
+ battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+ characters.forEach(c=>{
+   if(!c.state)c.state={};
+   c.state.rp=2;c.state.attackBonus=0;c.state.guard=false;c.state.spirit=c.state.spirit||0;c.state.normalAttacks=0;c.state.nextApPenalty=0;
+ });
+ battle.ap=Math.max(0,2-(current().state.nextApPenalty||0));
+ log(`戦闘開始！ DEX ${chars[0].dex} vs ${chars[1].dex}`);
+ log(`${current().name}のターン。`);
+ render();
 }
 function action(a){
  let c=current();if(a==="attack"&&battle.ap>=1)return attack("normal",1);
