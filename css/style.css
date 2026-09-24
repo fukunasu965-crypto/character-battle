@@ -194,3 +194,67 @@
 .special-action{outline:1px solid rgba(201,156,255,.24)}
 .resource-chip{font-weight:900}.rp-chip{border-color:rgba(120,215,255,.55)!important}.mp-chip{border-color:rgba(201,156,255,.55)!important}
 #ap{font-weight:1000;letter-spacing:.04em;padding:5px 12px;border-radius:999px;background:rgba(255,214,107,.12);border:1px solid rgba(255,214,107,.4)}
+
+/* v2.34 — one actual-looking D100 rolling across the screen */
+#dice-cinematic .dice-stage{perspective:1200px;overflow:hidden}
+.d100-die{
+ position:absolute;left:50%;top:46%;width:clamp(180px,25vw,330px);aspect-ratio:1;
+ transform-style:preserve-3d;will-change:transform,filter;
+ filter:drop-shadow(0 34px 28px rgba(0,0,0,.78));
+}
+.d100-shell{
+ position:absolute;inset:0;transform-style:preserve-3d;
+ clip-path:polygon(50% 0%,65% 5%,80% 14%,92% 27%,100% 44%,98% 61%,90% 78%,76% 91%,59% 99%,41% 99%,24% 91%,10% 78%,2% 61%,0% 44%,8% 27%,20% 14%,35% 5%);
+ background:
+  repeating-conic-gradient(from 7deg at 50% 50%,rgba(255,255,255,.24) 0deg 7deg,rgba(0,0,0,.08) 7deg 14deg,transparent 14deg 21deg),
+  radial-gradient(circle at 32% 24%,#f8fafc 0 8%,#cfd5df 25%,#7d8796 55%,#343b47 82%,#161a22 100%);
+ box-shadow:inset 0 0 0 3px rgba(255,255,255,.28),inset -35px -42px 55px rgba(0,0,0,.4),inset 25px 20px 38px rgba(255,255,255,.22);
+ border-radius:48%;
+}
+.d100-shell::before{
+ content:"";position:absolute;inset:5%;
+ background:
+  linear-gradient(24deg,transparent 47%,rgba(255,255,255,.34) 48% 49%,transparent 50%),
+  linear-gradient(82deg,transparent 47%,rgba(0,0,0,.25) 48% 49%,transparent 50%),
+  linear-gradient(142deg,transparent 47%,rgba(255,255,255,.22) 48% 49%,transparent 50%);
+ clip-path:polygon(50% 0%,65% 5%,80% 14%,92% 27%,100% 44%,98% 61%,90% 78%,76% 91%,59% 99%,41% 99%,24% 91%,10% 78%,2% 61%,0% 44%,8% 27%,20% 14%,35% 5%);
+}
+.d100-face,.d100-center{
+ position:absolute;z-index:3;font-weight:1000;color:#12161d;text-shadow:0 1px 1px rgba(255,255,255,.85);
+ font-size:clamp(14px,2.2vw,28px);line-height:1;
+}
+.d100-center{left:50%;top:50%;transform:translate(-50%,-50%);font-size:clamp(38px,7vw,82px);background:rgba(245,247,250,.72);padding:.08em .16em;border-radius:.18em}
+.d100-face.f1{left:47%;top:10%}.d100-face.f2{left:68%;top:22%;transform:rotate(18deg)}
+.d100-face.f3{left:78%;top:48%;transform:rotate(52deg)}.d100-face.f4{left:65%;top:72%;transform:rotate(15deg)}
+.d100-face.f5{left:43%;top:82%;transform:rotate(-8deg)}.d100-face.f6{left:20%;top:69%;transform:rotate(-24deg)}
+.d100-face.f7{left:10%;top:45%;transform:rotate(-58deg)}.d100-face.f8{left:20%;top:22%;transform:rotate(-18deg)}
+.d100-face.f9{left:43%;top:28%;font-size:clamp(12px,1.8vw,23px)}
+.d100-die.throwing{animation:d100Throw 1.56s cubic-bezier(.18,.65,.28,1) both}
+.d100-die.throwing .d100-shell{animation:d100Spin .19s linear infinite}
+.d100-die.landed{animation:d100Land .48s cubic-bezier(.14,1.7,.28,1) both}
+.d100-die.landed .d100-shell{animation:d100Settle .48s cubic-bezier(.2,1.5,.3,1) both}
+@keyframes d100Throw{
+ 0%{transform:translate(-110vw,-72vh) scale(.48) rotate(-22deg)}
+ 24%{transform:translate(-55vw,-12vh) scale(.82) rotate(18deg)}
+ 46%{transform:translate(-22vw,13vh) scale(1.08) rotate(-12deg)}
+ 62%{transform:translate(-2vw,-13vh) scale(.98) rotate(8deg)}
+ 77%{transform:translate(-12vw,4vh) scale(1.04) rotate(-5deg)}
+ 89%{transform:translate(-5vw,-3vh) scale(1.01) rotate(2deg)}
+ 100%{transform:translate(-50%,-50%) scale(1) rotate(0)}
+}
+@keyframes d100Spin{
+ 0%{transform:rotateX(0deg) rotateY(0deg) rotateZ(0deg)}
+ 100%{transform:rotateX(325deg) rotateY(410deg) rotateZ(215deg)}
+}
+@keyframes d100Land{
+ 0%{transform:translate(-50%,-60%) scale(1.14)}
+ 48%{transform:translate(-50%,-44%) scale(.94)}
+ 72%{transform:translate(-50%,-53%) scale(1.035)}
+ 100%{transform:translate(-50%,-50%) scale(1)}
+}
+@keyframes d100Settle{
+ 0%{transform:rotateX(34deg) rotateY(-28deg) rotateZ(18deg)}
+ 60%{transform:rotateX(-8deg) rotateY(10deg) rotateZ(-5deg)}
+ 100%{transform:rotateX(0) rotateY(0) rotateZ(0)}
+}
+@media(max-width:650px){.d100-die{width:min(64vw,270px);top:43%}}

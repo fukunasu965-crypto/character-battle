@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=233">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=234">
 <style>
 .result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
 .result-overlay.hidden{display:none!important}
@@ -21,8 +21,14 @@
 <div id="dice-cinematic" class="dice-cinematic hidden" aria-hidden="true">
   <div class="dice-speedlines"></div>
   <div class="dice-stage">
-    <div class="percentile-die tens" id="dice-tens"><div class="die-core"><span>0</span></div></div>
-    <div class="percentile-die ones" id="dice-ones"><div class="die-core"><span>0</span></div></div>
+    <div class="d100-die" id="d100-die" aria-label="100面ダイス">
+      <div class="d100-shell">
+        <span class="d100-face f1">01</span><span class="d100-face f2">17</span><span class="d100-face f3">28</span>
+        <span class="d100-face f4">43</span><span class="d100-face f5">56</span><span class="d100-face f6">72</span>
+        <span class="d100-face f7">84</span><span class="d100-face f8">93</span><span class="d100-face f9">100</span>
+        <span class="d100-center" id="d100-center">?</span>
+      </div>
+    </div>
   </div>
   <div class="dice-cinematic-inner">
     <div id="dice-label" class="dice-label">1D100</div>
@@ -74,7 +80,7 @@
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.33</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.34</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -210,10 +216,10 @@
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.33 — stable offline rebuild</footer>
+<footer>Character Battle v2.34 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=233"></script>
-<script src="js/character.js?v=233"></script>
-<script src="js/app.js?v=233"></script>
+<script src="js/dice.js?v=234"></script>
+<script src="js/character.js?v=234"></script>
+<script src="js/app.js?v=234"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>

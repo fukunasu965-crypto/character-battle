@@ -385,26 +385,28 @@ function resultSting(z){
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
  const ov=document.getElementById("dice-cinematic");if(!ov)return;
  const token=++diceFxToken,num=document.getElementById("dice-number"),res=document.getElementById("dice-result");
- const td=document.getElementById("dice-tens"),od=document.getElementById("dice-ones");
+ const die=document.getElementById("d100-die"),center=document.getElementById("d100-center");
  document.getElementById("dice-label").textContent=label;
  document.getElementById("dice-target").textContent=target!=null?`TARGET ${target}`:"";
- res.textContent="";num.textContent="";ov.className="dice-cinematic rolling";ov.classList.remove("hidden");
+ res.textContent="";num.textContent="";center.textContent="?";
+ ov.className="dice-cinematic rolling";ov.classList.remove("hidden");
+ // Restart the physical throw from off-screen every time.
+ die.classList.remove("throwing","landed");void die.offsetWidth;die.classList.add("throwing");
  diceSound();
  let n=0;
  const spin=setInterval(()=>{
   if(token!==diceFxToken){clearInterval(spin);return}
-  const a=Math.floor(Math.random()*10),b=Math.floor(Math.random()*10);
-  td.querySelector("span").textContent=a*10;od.querySelector("span").textContent=b;
+  center.textContent=String(1+Math.floor(Math.random()*100)).padStart(2,"0");
   if(++n>=34){
    clearInterval(spin);
-   const tens=roll===100?0:Math.floor(roll/10)*10,ones=roll===100?0:roll%10;
-   td.querySelector("span").textContent=tens;od.querySelector("span").textContent=ones;
+   center.textContent=String(roll).padStart(2,"0");
    num.textContent=String(roll).padStart(2,"0");res.textContent=z.text.toUpperCase();
    ov.classList.remove("rolling");ov.classList.add("impact",(z.rank>=4)?"critical":(z.rank<=1)?"fumble":"normal");
+   die.classList.remove("throwing");die.classList.add("landed");
    resultSting(z);
    setTimeout(()=>{
      if(token!==diceFxToken)return;
-     ov.classList.add("hidden");
+     ov.classList.add("hidden");die.classList.remove("landed");
      if(typeof onDone==="function")setTimeout(onDone,120);
    },z.rank>=4||z.rank<=1?1450:1150);
   }
@@ -623,7 +625,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.33");
+setOnlineStatus("オンライン：操作できます / BUILD 2.34");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -656,7 +658,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.33")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.34")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
