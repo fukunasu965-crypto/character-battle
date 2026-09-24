@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="toast"></div>
+<main class="app">
+<header class="top">
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v1.0</small></h1></div>
+  <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
+</header>
+
+<section id="lobby" class="screen">
+  <div class="hero">
+    <h2>キャラクターを持ち寄って、1対1で対戦。</h2>
+    <p>同じPCでも、離れた相手とも遊べます。オンライン対戦では自分のキャラクターの操作だけが有効になります。</p>
+  </div>
+  <div class="lobby-grid">
+    <article class="card">
+      <h3>① キャラクター</h3>
+      <div class="tabs"><button class="tab active" data-tab="manual">手入力</button><button class="tab" data-tab="ccfolia">ココフォリアJSON</button></div>
+      <div id="manual-panel">
+        <label>名前<input id="char-name" value="山田 太郎"></label>
+        <div class="two"><label>HP<input id="char-hp" type="number" value="14" min="1"></label><label>DEX<input id="char-dex" type="number" value="65"></label></div>
+        <div class="three"><label>攻撃<input id="char-atk" type="number" value="70"></label><label>回避<input id="char-dodge" type="number" value="60"></label><label>応急手当<input id="char-aid" type="number" value="60"></label></div>
+      </div>
+      <div id="ccfolia-panel" class="hidden">
+        <p class="hint">ココフォリアの「駒をクリップボードにコピー」で得たJSONを貼り付けます。HP・DEX・技能は候補から自動検出し、下で修正できます。</p>
+        <textarea id="ccfolia-json" placeholder='{"kind":"character","data":{...}}'></textarea>
+        <button id="parse-json" class="secondary">JSONを読み込む</button>
+        <div id="import-result" class="hint"></div>
+      </div>
+      <button id="save-char" class="primary">このキャラクターを使用</button>
+      <div id="my-preview" class="preview">キャラクター未確定</div>
+    </article>
+
+    <article class="card">
+      <h3>② 遊び方</h3>
+      <button id="local-start" class="mode"><b>同じPCで対戦</b><small>2人で交互に操作</small></button>
+      <button id="host-btn" class="mode"><b>オンライン部屋を作る</b><small>あなたが PLAYER 1</small></button>
+      <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn">参加</button></div>
+      <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
+      <p class="hint">オンライン対戦は2人用です。部屋コードを相手に送ってください。</p>
+    </article>
+  </div>
+</section>
+
+<section id="battle-screen" class="screen hidden">
+  <div class="battle-head">
+    <div><strong id="round">ROUND 1</strong><span id="turn-label"></span></div>
+    <div id="role-label" class="role"></div>
+  </div>
+  <section class="fighters">
+    <article class="fighter" id="fighter1">
+      <div class="owner">PLAYER 1</div><h2 id="name1"></h2>
+      <div class="hp-line"><span>HP</span><strong id="hp1"></strong></div><div class="hpbar"><i id="hpbar1"></i></div>
+      <div class="stat-grid" id="stats1"></div><div class="effects" id="effects1"></div>
+    </article>
+    <div class="vs">VS</div>
+    <article class="fighter" id="fighter2">
+      <div class="owner">PLAYER 2</div><h2 id="name2"></h2>
+      <div class="hp-line"><span>HP</span><strong id="hp2"></strong></div><div class="hpbar"><i id="hpbar2"></i></div>
+      <div class="stat-grid" id="stats2"></div><div class="effects" id="effects2"></div>
+    </article>
+  </section>
+
+  <section class="command card">
+    <div class="command-head"><div><h3 id="command-title">行動を選択</h3><p id="resource-line"></p></div><span id="control-note"></span></div>
+    <div id="actions" class="commands">
+      <button id="attack"><b>⚔ 通常攻撃</b><strong class="chance" id="attack-chance"></strong><small id="attack-detail"></small></button>
+      <button id="heavy"><b>💥 強攻撃</b><strong class="chance" id="heavy-chance"></strong><small id="heavy-detail"></small></button>
+      <button id="guard"><b>🛡 防御</b><strong class="chance">構え</strong><small>被ダメ-2 / 回避・反撃+15</small></button>
+      <button id="observe"><b>👁 観察</b><strong class="chance">補助</strong><small>次攻撃+20 / 相手回避-15</small></button>
+      <button id="heal"><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>2 AP</small></button>
+    </div>
+    <div id="reactions" class="commands three hidden">
+      <button id="dodge"><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
+      <button id="counter"><b>⚔ 反撃</b><strong class="chance" id="counter-chance"></strong><small id="counter-detail"></small></button>
+      <button id="take"><b>💥 受ける</b><strong class="chance">判定なし</strong><small>0 RP / 闘志+1</small></button>
+    </div>
+  </section>
+
+  <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
+</section>
+<footer>Character Battle v1.0 — browser TRPG duel prototype</footer>
+</main>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script src="js/dice.js"></script><script src="js/character.js"></script><script src="js/network.js"></script><script src="js/battle.js"></script><script src="js/main.js"></script>
+</body></html>
