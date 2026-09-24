@@ -292,7 +292,7 @@ function clearResult(){
  $("fighter1")?.classList.remove("is-winner","is-loser");$("fighter2")?.classList.remove("is-winner","is-loser");
 }
 function showResult(winnerIndex,loserIndex,viewerIndex=null){
- stopBattleBgm();
+ 
  const ov=$("result-overlay");const didWin=viewerIndex===null||viewerIndex===winnerIndex;
  $("result-title").textContent=didWin?"VICTORY":"DEFEAT";
  $("result-winner").textContent=didWin?"🏆 "+chars[winnerIndex].name:chars[loserIndex].name+" は敗北した";
@@ -301,7 +301,7 @@ function showResult(winnerIndex,loserIndex,viewerIndex=null){
  $("fighter"+(winnerIndex+1))?.classList.add("is-winner");$("fighter"+(loserIndex+1))?.classList.add("is-loser");ov.classList.remove("hidden");
 }
 function showOnlineResult(winnerIndex,myPlayerIndex){
- stopBattleBgm();
+ 
  showResult(winnerIndex,1-winnerIndex,myPlayerIndex);
 }
 function rematch(){
@@ -354,6 +354,7 @@ battleBgm.preload="auto";
 // v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
 let rollResultFxToken=0;
 function showDiceFx(roll,target,z,label="1D100",onDone=null){
+ if(bgmEnabled && battleBgm.paused) battleBgm.play().catch(()=>{});
  const box=$("roll-result-fx");
  if(!box){if(typeof onDone==="function")onDone();return}
  const token=++rollResultFxToken;
@@ -577,7 +578,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.38");
+setOnlineStatus("オンライン：操作できます / BUILD 2.39");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -610,7 +611,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.38")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.39")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
