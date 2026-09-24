@@ -222,7 +222,6 @@ function clearResult(){
  $("fighter1")?.classList.remove("is-winner","is-loser");$("fighter2")?.classList.remove("is-winner","is-loser");
 }
 function showResult(winnerIndex,loserIndex,viewerIndex=null){
- $("rematch-btn").style.display="";
  const ov=$("result-overlay");const didWin=viewerIndex===null||viewerIndex===winnerIndex;
  $("result-title").textContent=didWin?"VICTORY":"DEFEAT";
  $("result-winner").textContent=didWin?"🏆 "+chars[winnerIndex].name:chars[loserIndex].name+" は敗北した";
@@ -232,8 +231,6 @@ function showResult(winnerIndex,loserIndex,viewerIndex=null){
 }
 function showOnlineResult(winnerIndex,myPlayerIndex){
  showResult(winnerIndex,1-winnerIndex,myPlayerIndex);
- $("rematch-btn").style.display="";
- $("rematch-btn").textContent="再戦する";
 }
 function rematch(){
  clearResult();
@@ -376,7 +373,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.21");
+setOnlineStatus("オンライン：操作できます / BUILD 2.22");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -386,32 +383,31 @@ bindImage("char-image","char-image-preview","p1");bindImage("p2-image","p2-image
 try{const c=JSON.parse(localStorage.getItem("cb-character"));if(c){p1=c;apply("p1",c);preview("p1",c)}}catch(e){}
 
 
-// v2.20: result actions are handled by event delegation.
-// This remains valid even if the result overlay/button DOM is recreated later.
-document.addEventListener("click",(ev)=>{
- const lobbyBtn=ev.target.closest?.("#result-lobby-btn");
- if(!lobbyBtn)return;
- ev.preventDefault();
- ev.stopPropagation();
 
- // Restore lobby UI first.
+// v2.22: result overlay keeps VICTORY/DEFEAT presentation.
+// Only "ロビーへ戻る" remains as an action.
+let lobbyReturning=false;
+function resultReturnToLobby(ev){
+ const btn=ev.target?.closest?.("#result-lobby-btn");
+ if(!btn||lobbyReturning)return;
+ lobbyReturning=true;
+ ev.preventDefault();ev.stopPropagation();
  const overlay=document.getElementById("result-overlay");
  if(overlay){overlay.classList.add("hidden");overlay.style.display="none";}
  const battleScreen=document.getElementById("battle-screen");
  if(battleScreen){battleScreen.classList.add("hidden");battleScreen.classList.remove("active");}
  const lobby=document.getElementById("lobby");
  if(lobby){lobby.classList.remove("hidden");lobby.style.display="";}
- const roomBox=document.getElementById("room-box");
- if(roomBox)roomBox.classList.add("hidden");
- const roomDisplay=document.getElementById("room-display");
- if(roomDisplay)roomDisplay.textContent="";
-
- // Reset local battle/network state.
+ const roomBox=document.getElementById("room-box"); if(roomBox)roomBox.classList.add("hidden");
+ const roomDisplay=document.getElementById("room-display"); if(roomDisplay)roomDisplay.textContent="";
  battle=null;chars=[];
- const oldConn=conn, oldPeer=peer;
+ const oldConn=conn,oldPeer=peer;
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
- try{oldConn?.close()}catch(e){console.warn("conn close",e)}
- try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn("peer destroy",e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.21")}catch(e){}
+ try{oldConn?.close()}catch(e){console.warn(e)}
+ try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.22")}catch(e){}
  window.scrollTo(0,0);
-},true);
+ setTimeout(()=>{lobbyReturning=false},300);
+}
+document.addEventListener("pointerup",resultReturnToLobby,true);
+document.addEventListener("click",resultReturnToLobby,true);
