@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=231">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=233">
 <style>
 .result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
 .result-overlay.hidden{display:none!important}
@@ -21,8 +21,8 @@
 <div id="dice-cinematic" class="dice-cinematic hidden" aria-hidden="true">
   <div class="dice-speedlines"></div>
   <div class="dice-stage">
-    <div class="percentile-die tens" id="dice-tens"><span>0</span></div>
-    <div class="percentile-die ones" id="dice-ones"><span>0</span></div>
+    <div class="percentile-die tens" id="dice-tens"><div class="die-core"><span>0</span></div></div>
+    <div class="percentile-die ones" id="dice-ones"><div class="die-core"><span>0</span></div></div>
   </div>
   <div class="dice-cinematic-inner">
     <div id="dice-label" class="dice-label">1D100</div>
@@ -39,34 +39,33 @@
     <h2 id="help-title">BATTLE RULES</h2>
     <p class="help-lead">相手のHPを0にしたプレイヤーの勝利です。DEXが高い方から行動します。</p>
     <div class="help-grid">
-      <section><h3>自分のターン</h3>
-        <p><b>APは毎ターン2。</b>行動ごとに消費します。</p>
-        <p><b>通常攻撃：1AP</b><br>同じターンの2回目以降は命中−15（累積しません）。1クリでAPが戻って3回目を行う場合も−15。</p>
-        <p><b>強攻撃：2AP</b><br>命中−15。威力の高い一撃。</p>
-        <p><b>組みつき：1AP</b><br>命中後にSTR対抗。STR対抗に成功した時だけダメージ＋相手の次ターンAP−1。</p>
+      <section><h3>ターンとAP / RP</h3>
+        <p><b>1ターンにつき1行動。</b>行動後はAPが残っていても相手のターンになります。</p>
+        <p><b>AP・RPは上限なしで持ち越し。</b>自分のターン開始時にAP+1 / RP+1。</p>
+        <p><b>1クリ：</b>AP+1。上限がないため、そのまま次ターン以降へ蓄積できます。</p>
       </section>
-      <section><h3>補助行動</h3>
-        <p><b>ガード：1AP</b><br>被ダメージ−2、回避・反撃+15。</p>
-        <p><b>観察：1AP</b><br>次の攻撃+20、相手の回避−15。</p>
-        <p><b>応急手当：2AP</b><br>成功するとHPを回復。</p>
+      <section><h3>基本行動</h3>
+        <p><b>通常攻撃：AP1</b>　命中補正なし。</p>
+        <p><b>強攻撃：AP2</b>　命中−5 / 高威力。</p>
+        <p><b>組みつき：AP1</b>　命中後STR対抗。成功時のみダメージ＋次のAP回復を阻害。</p>
+        <p><b>ガード：AP1</b>　被ダメ−2 / 回避・反撃+15。</p>
+        <p><b>応急手当：AP2</b>　成功するとHP回復。</p>
       </section>
-      <section><h3>攻撃されたら</h3>
-        <p><b>RPは自分のターン開始時に2。</b></p>
-        <p><b>回避：2RP</b>　攻撃をかわします。</p>
-        <p><b>反撃：1RP</b>　命中−20で攻撃を返します。</p>
-        <p><b>受ける：0RP</b>　攻撃を受け、闘志+1（最大3）。強攻撃では増えません。</p>
+      <section><h3>特殊行動 — AP0</h3>
+        <p>特殊行動は<b>APを消費しません</b>が、そのターンの1行動を使います。</p>
+        <p><b>分析：INT×5</b>　旧「観察」。成功で次の攻撃+20 / 相手回避−15。</p>
+        <p><b>挑発：APP×5</b>　成功すると相手の次行動は攻撃系のみ。その攻撃は<b>ダメージ+2 / 命中−10</b>。</p>
+        <p><b>威圧：POW×5 / MP2</b>　成功すると相手の<b>次の能動判定−10</b>。対象判定を行うまで保持。</p>
       </section>
-      <section><h3>大ダメージ・気絶ロール</h3>
-        <p>一度の攻撃で<b>ダメージを受ける直前のHPの半分以上</b>を失うと、<b>CON×5</b>で気絶ロールを行います。</p>
-        <p><b>成功：</b>踏みとどまり、追加ペナルティなし。</p>
-        <p><b>失敗：</b>強い衝撃で動きが鈍り、<b>次の自分のターンAP−1</b>。</p>
+      <section><h3>リアクション</h3>
+        <p><b>回避：RP2</b>　攻撃をかわします。</p>
+        <p><b>反撃：RP1</b>　命中−10で攻撃を返します。</p>
+        <p><b>受ける：RP0</b>　攻撃を受け、闘志+1（最大3）。強攻撃では増えません。</p>
       </section>
-      <section><h3>特殊な出目</h3>
-        <p><b>1：</b>最高ランク。行動時はAPを1回復。</p>
-        <p><b>2～5：</b>クリティカル。</p>
-        <p><b>96～99：</b>ファンブル。</p>
-        <p><b>100：</b>100ファンブル。</p>
-        <p class="help-note">対抗判定は成功ランクが高い側が勝利。同ランクなら防御側が優先されます。</p>
+      <section><h3>大ダメージ・特殊な出目</h3>
+        <p>直前HPの半分以上のダメージで<b>CON×5</b>。失敗すると次のAP回復を1回阻害。</p>
+        <p><b>1：</b>最高ランク＋AP1回復　<b>2～5：</b>クリティカル　<b>96～99：</b>ファンブル　<b>100：</b>100ファンブル。</p>
+        <p class="help-note">対抗判定は成功ランクが高い側が勝利。同ランクなら防御側優先。</p>
       </section>
     </div>
   </div>
@@ -75,7 +74,7 @@
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.31</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.33</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -141,7 +140,7 @@
     <button id="com-start" class="mode" type="button"><b>COMと対戦</b><small>PLAYER 1を操作 / PLAYER 2をCOMが操作</small></button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12)">
-      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.31</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
+      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.32</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
 
       <input id="host-code" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4桁のルームコード（例：1234）" autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:8px">
       <button id="host-btn" class="mode" type="button">
@@ -193,25 +192,28 @@
     <div class="command-head"><div><h3 id="command-title">行動を選択</h3><p id="resource-line"></p></div><span id="control-note"></span></div>
     <div class="turn-status"><strong id="turn-name">ターン</strong><span>AP <b id="ap">●●</b></span></div>
   <div id="actions" class="commands">
-      <button id="attack"><b>⚔ 通常攻撃</b><strong class="chance" id="attack-chance"></strong><small id="attack-detail"></small></button>
-      <button id="heavy"><b>💥 強攻撃</b><strong class="chance" id="heavy-chance"></strong><small id="heavy-detail"></small></button>
-      <button id="guard"><b>🛡 防御</b><strong class="chance">構え</strong><small>被ダメ-2 / 回避・反撃+15</small></button>
-      <button id="observe"><b>👁 観察</b><strong class="chance">補助</strong><small>次攻撃+20 / 相手回避-15</small></button>
-      <button id="grapple"><b>🤼 組み付き</b><strong class="chance" id="grapple-chance"></strong><small id="grapple-detail">命中後 STR対抗</small></button><button id="heal"><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>2 AP</small></button>
+      <button id="attack"><span class="cost-badge ap-cost">AP 1</span><b>⚔ 通常攻撃</b><strong class="chance" id="attack-chance"></strong><small id="attack-detail"></small></button>
+      <button id="heavy"><span class="cost-badge ap-cost">AP 2</span><b>💥 強攻撃</b><strong class="chance" id="heavy-chance"></strong><small id="heavy-detail"></small></button>
+      <button id="grapple"><span class="cost-badge ap-cost">AP 1</span><b>🤼 組み付き</b><strong class="chance" id="grapple-chance"></strong><small id="grapple-detail">命中後 STR対抗</small></button>
+      <button id="guard"><span class="cost-badge ap-cost">AP 1</span><b>🛡 防御</b><strong class="chance">構え</strong><small>被ダメ-2 / 回避・反撃+15</small></button>
+      <button id="heal"><span class="cost-badge ap-cost">AP 2</span><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>成功でHP回復</small></button>
+      <button id="analyze" class="special-action"><span class="cost-badge free-cost">AP 0</span><b>👁 分析</b><strong class="chance" id="analyze-chance"></strong><small>成功：次攻撃+20 / 相手回避-15</small></button>
+      <button id="taunt" class="special-action"><span class="cost-badge free-cost">AP 0</span><b>💬 挑発</b><strong class="chance" id="taunt-chance"></strong><small>成功：相手の次行動を攻撃限定</small></button>
+      <button id="intimidate" class="special-action"><span class="cost-badge mp-cost">MP 2</span><b>⚡ 威圧</b><strong class="chance" id="intimidate-chance"></strong><small>成功：相手の次の能動判定-10</small></button>
     </div>
     <div id="reactions" class="commands three hidden">
-      <button id="dodge"><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
-      <button id="counter"><b>⚔ 反撃</b><strong class="chance" id="counter-chance"></strong><small id="counter-detail"></small></button>
-      <button id="take"><b>💥 受ける</b><strong class="chance">判定なし</strong><small>0 RP / 闘志+1</small></button>
+      <button id="dodge"><span class="cost-badge rp-cost">RP 2</span><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
+      <button id="counter"><span class="cost-badge rp-cost">RP 1</span><b>⚔ 反撃</b><strong class="chance" id="counter-chance"></strong><small id="counter-detail"></small></button>
+      <button id="take"><span class="cost-badge free-cost">RP 0</span><b>💥 受ける</b><strong class="chance">判定なし</strong><small>0 RP / 闘志+1</small></button>
     </div>
   </section>
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.31 — stable offline rebuild</footer>
+<footer>Character Battle v2.33 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=231"></script>
-<script src="js/character.js?v=231"></script>
-<script src="js/app.js?v=231"></script>
+<script src="js/dice.js?v=233"></script>
+<script src="js/character.js?v=233"></script>
+<script src="js/app.js?v=233"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>

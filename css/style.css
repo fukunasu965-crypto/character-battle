@@ -144,3 +144,53 @@
 .dice-cinematic.impact::after{content:"";position:absolute;inset:0;background:white;opacity:0;animation:diceImpactFlash .22s ease-out}
 @keyframes diceBackdropPulse{from{transform:scale(.96);opacity:.55}to{transform:scale(1.04);opacity:1}}
 @keyframes diceImpactFlash{0%{opacity:.34}100%{opacity:0}}
+
+/* v2.32 physical percentile dice + paced finishing blow */
+.percentile-die{
+ clip-path:none!important;background:none!important;box-shadow:none!important;
+ width:clamp(130px,18vw,240px)!important;filter:drop-shadow(0 34px 24px rgba(0,0,0,.72));
+ transform-style:preserve-3d;
+}
+.die-core{
+ width:100%;height:100%;display:grid;place-items:center;position:relative;
+ clip-path:polygon(50% 0,82% 18%,100% 50%,82% 82%,50% 100%,18% 82%,0 50%,18% 18%);
+ background:
+ linear-gradient(30deg,transparent 48%,rgba(255,255,255,.35) 49% 51%,transparent 52%),
+ linear-gradient(150deg,transparent 48%,rgba(0,0,0,.32) 49% 51%,transparent 52%),
+ conic-gradient(from 18deg,#f4f5f7,#9ca4b2,#e9ebef,#555e6d,#d8dce3,#7c8594,#f4f5f7);
+ border-radius:12%;
+ box-shadow:inset 0 0 24px rgba(255,255,255,.5),inset 0 -28px 36px rgba(0,0,0,.28);
+ transform:rotateX(58deg) rotateZ(8deg);
+}
+.die-core::before,.die-core::after{content:"";position:absolute;inset:9%;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%);border:2px solid rgba(255,255,255,.28);transform:rotate(22.5deg)}
+.die-core::after{inset:23%;border-color:rgba(0,0,0,.25);transform:rotate(67.5deg)}
+.die-core span{position:relative;z-index:3;font-size:clamp(36px,6vw,78px);font-weight:1000;color:#10131a;text-shadow:0 2px 1px rgba(255,255,255,.8);transform:rotateX(-58deg)}
+.dice-cinematic.rolling .percentile-die.tens{animation:physicalRollA .24s linear infinite!important}
+.dice-cinematic.rolling .percentile-die.ones{animation:physicalRollB .21s linear infinite!important}
+@keyframes physicalRollA{
+ 0%{transform:translate(-42vw,-24vh) rotate(0deg) scale(.72)}
+ 35%{transform:translate(-10vw,8vh) rotate(155deg) scale(1.08)}
+ 68%{transform:translate(9vw,-4vh) rotate(310deg) scale(.92)}
+ 100%{transform:translate(0,0) rotate(520deg) scale(1)}
+}
+@keyframes physicalRollB{
+ 0%{transform:translate(44vw,-18vh) rotate(0deg) scale(.68)}
+ 38%{transform:translate(12vw,10vh) rotate(-175deg) scale(1.1)}
+ 70%{transform:translate(-8vw,-2vh) rotate(-335deg) scale(.94)}
+ 100%{transform:translate(0,0) rotate(-545deg) scale(1)}
+}
+.dice-cinematic.impact .percentile-die{animation:physicalLand .38s cubic-bezier(.16,1.65,.3,1) both!important}
+@keyframes physicalLand{0%{transform:translateY(-32px) scale(1.15)}45%{transform:translateY(10px) scale(.94)}72%{transform:translateY(-5px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+.battle-impact{position:fixed;inset:0;z-index:49000;display:grid;place-content:center;text-align:center;pointer-events:none;background:radial-gradient(circle,rgba(0,0,0,.18),rgba(0,0,0,.76));opacity:0;transition:opacity .16s}
+.battle-impact.hidden{display:none!important}.battle-impact.show{opacity:1}
+.battle-impact-title{font-size:clamp(90px,20vw,260px);font-weight:1000;letter-spacing:.04em;line-height:.9;text-shadow:0 8px 40px #000;animation:koHit .42s cubic-bezier(.1,1.8,.3,1)}
+.battle-impact-sub{margin-top:24px;font-size:clamp(18px,3vw,36px);font-weight:900}
+@keyframes koHit{0%{transform:scale(2.2);opacity:0}55%{transform:scale(.88);opacity:1}100%{transform:scale(1)}}
+
+/* v2.33 resource economy */
+.commands button{position:relative;padding-top:28px}
+.cost-badge{position:absolute;top:7px;right:8px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:1000;letter-spacing:.04em;border:1px solid currentColor;background:rgba(0,0,0,.28)}
+.ap-cost{color:#ffd66b}.rp-cost{color:#78d7ff}.mp-cost{color:#c99cff}.free-cost{color:#8ff0ad}
+.special-action{outline:1px solid rgba(201,156,255,.24)}
+.resource-chip{font-weight:900}.rp-chip{border-color:rgba(120,215,255,.55)!important}.mp-chip{border-color:rgba(201,156,255,.55)!important}
+#ap{font-weight:1000;letter-spacing:.04em;padding:5px 12px;border-radius:999px;background:rgba(255,214,107,.12);border:1px solid rgba(255,214,107,.4)}

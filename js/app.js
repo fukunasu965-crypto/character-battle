@@ -14,7 +14,7 @@ function bindImage(input,preview,key){
 function read(side){
  const pre=side==="p1"?"char":"p2";
  const attacks=importedAttacks[side]||[{name:"攻撃",skill:num(pre+"-atk"),damage:$(pre+"-dmg").value||"1D4+1",kind:"damage"}];
- return {name:$(pre+"-name").value.trim()||side.toUpperCase(),maxHp:num(pre+"-hp")||10,str:num(pre+"-str")||10,dex:num(pre+"-dex")||10,
+ return {name:$(pre+"-name").value.trim()||side.toUpperCase(),maxHp:num(pre+"-hp")||10,maxMp:10,mp:10,str:num(pre+"-str")||10,dex:num(pre+"-dex")||10,app:10,pow:10,int:10,
  attack:num(pre+"-atk")||50,dodge:num(pre+"-dodge")||40,firstAid:num(pre+"-aid")||30,image:imageData[side],attacks};
 }
 function apply(side,c){
@@ -42,9 +42,11 @@ function importJson(side){
  }catch(e){console.error(e);$(side==="p1"?"import-result":"p2-import-result").textContent=`JSON読込エラー：${e.message}`}
 }
 function selected(c){return chooseBestAttack(c.attacks)}
-function atkSkill(c,type="normal"){let v=selected(c).skill+(c.state.attackBonus||0);if(type==="heavy")v-=15;if(type==="normal"&&c.state.normalAttacks>0)v-=15;if(c.state.spirit>=3)v+=10;return clamp(v)}
+function activePenalty(c){const n=c.state.intimidated?10:0;if(n)c.state.intimidated=false;return n}
+function atkSkill(c,type="normal"){let v=selected(c).skill+(c.state.attackBonus||0);if(type==="heavy")v-=5;if(c.state.spirit>=3)v+=10;return clamp(v)}
+function counterSkill(c){return clamp(c.skills.attack-10+(c.state.guard?15:0))}
+function specialSkill(c,key){return clamp((Number(c[key])||10)*5)}
 function dodgeSkill(c,observed=false){return clamp(c.skills.dodge+(c.state.guard?15:0)-(observed?15:0))}
-function counterSkill(c){return clamp(c.skills.attack-20+(c.state.guard?15:0))}
 function log(text,cls=""){battle.log.push({text,cls});render()}
 function cur(){return chars[battle.turn]}
 function foe(){return chars[1-battle.turn]}
@@ -57,6 +59,9 @@ function fresh(base){
    attacks,
    hp:base.maxHp,
    maxHp:base.maxHp,
+   maxMp:Number(base.maxMp??base.mp??10),
+   mp:Number(base.maxMp??base.mp??10),
+   app:Number(base.app??10),pow:Number(base.pow??10),int:Number(base.int??10),
    db:base.db||"0",
    skills:{
      attack:Number(base.attack ?? best.skill ?? 50),
@@ -64,8 +69,10 @@ function fresh(base){
      firstAid:Number(base.firstAid ?? 30)
    },
    state:{
-     rp:2,
+     rp:1,
      attackBonus:0,
+     taunted:false,
+     intimidated:false,
      guard:false,
      spirit:0,
      normalAttacks:0,
@@ -107,7 +114,7 @@ function setupConnection(c,hostSide){
     chars=[fresh(p1),fresh(p2)];
     battle={
       turn:chars[0].dex>=chars[1].dex?0:1,
-      round:1,ap:2,pending:null,gameOver:false,
+      round:1,ap:1,pending:null,gameOver:false,
       log:[{text:"オンライン対戦開始！",cls:"special"}]
     };
     $("lobby").classList.add("hidden");
@@ -216,7 +223,7 @@ function start(){
   save("p1");save("p2");
   if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
   chars=[fresh(p1),fresh(p2)];
-  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
@@ -228,7 +235,7 @@ function startCom(){
   clearResult();save("p1");save("p2");
   if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
   chars=[fresh(p1),fresh(p2)];
-  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+  battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});render();scheduleCom();
  }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
@@ -263,8 +270,14 @@ function comStep(){
  return action("attack");
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
-function finishAction(){if(!battle.gameOver&&!battle.pending&&battle.ap<=0)endTurn();render()}
-function endTurn(){battle.turn=1-battle.turn;if(battle.turn===0)battle.round++;const c=cur();battle.ap=Math.max(0,2-(c.state.nextApPenalty||0));c.state.nextApPenalty=0;c.state.rp=2;c.state.normalAttacks=0;battle.log.push({text:`--- ROUND ${battle.round} / ${c.name} ---`,cls:"special"})}
+function finishAction(){if(!battle.gameOver&&!battle.pending)endTurn();render()}
+function endTurn(){
+ battle.turn=1-battle.turn;if(battle.turn===0)battle.round++;
+ const c=cur();let gain=1;
+ if(c.state.nextApPenalty){gain=0;c.state.nextApPenalty=0;battle.log.push({text:`💫 ${c.name}はAP回復を阻害された。`,cls:"special"})}
+ battle.ap=(battle.ap||0)+gain;c.state.rp=(c.state.rp||0)+1;c.state.normalAttacks=0;
+ battle.log.push({text:`--- ROUND ${battle.round} / ${c.name} --- AP +${gain} / RP +1`,cls:"special"})
+}
 function clearResult(){
  const ov=$("result-overlay");ov.classList.add("hidden");ov.classList.remove("result-win","result-lose");
  $("fighter1")?.classList.remove("is-winner","is-loser");$("fighter2")?.classList.remove("is-winner","is-loser");
@@ -285,9 +298,22 @@ function showOnlineResult(winnerIndex,myPlayerIndex){
 function rematch(){
  clearResult();
  chars=[fresh(p1),fresh(p2)];
- battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
+ battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
  battle.log.push({text:"再戦開始！ "+cur().name+"のターン。",cls:"special"});
  render();
+}
+
+function showBattleImpact(title,sub="",duration=900){
+ let el=document.getElementById("battle-impact");
+ if(!el){
+  el=document.createElement("div");el.id="battle-impact";el.className="battle-impact hidden";
+  el.innerHTML='<div class="battle-impact-title"></div><div class="battle-impact-sub"></div>';
+  document.body.appendChild(el);
+ }
+ el.querySelector(".battle-impact-title").textContent=title;
+ el.querySelector(".battle-impact-sub").textContent=sub;
+ el.classList.remove("hidden");void el.offsetWidth;el.classList.add("show");
+ setTimeout(()=>{el.classList.remove("show");setTimeout(()=>el.classList.add("hidden"),180)},duration);
 }
 function checkEnd(){
  const loserIndex=chars.findIndex(c=>c.hp<=0);
@@ -295,12 +321,13 @@ function checkEnd(){
   const winnerIndex=1-loserIndex;
   battle.gameOver=true;
   battle.log.push({text:chars[loserIndex].name+" 戦闘不能！",cls:"damage"});
+  showBattleImpact("K.O.",chars[loserIndex].name+" 戦闘不能",1750);
   battle.log.push({text:"🏆 "+chars[winnerIndex].name+" WIN！",cls:"special"});
   if(netMode==="online"){
    if(isHost)sendNet("result",{winnerIndex,loserIndex});
-   setTimeout(()=>showOnlineResult(winnerIndex,myPlayerIndex),220);
+   setTimeout(()=>showOnlineResult(winnerIndex,myPlayerIndex),1850);
   }else{
-   setTimeout(()=>showResult(winnerIndex,loserIndex),220);
+   setTimeout(()=>showResult(winnerIndex,loserIndex),1850);
   }
   window.dispatchEvent(new CustomEvent("character-battle-result",{detail:{winnerIndex,loserIndex}}));
  }
@@ -355,7 +382,7 @@ function resultSting(z){
   });
  }catch(e){}
 }
-function showDiceFx(roll,target,z,label="1D100"){
+function showDiceFx(roll,target,z,label="1D100",onDone=null){
  const ov=document.getElementById("dice-cinematic");if(!ov)return;
  const token=++diceFxToken,num=document.getElementById("dice-number"),res=document.getElementById("dice-result");
  const td=document.getElementById("dice-tens"),od=document.getElementById("dice-ones");
@@ -368,14 +395,18 @@ function showDiceFx(roll,target,z,label="1D100"){
   if(token!==diceFxToken){clearInterval(spin);return}
   const a=Math.floor(Math.random()*10),b=Math.floor(Math.random()*10);
   td.querySelector("span").textContent=a*10;od.querySelector("span").textContent=b;
-  if(++n>=26){
+  if(++n>=34){
    clearInterval(spin);
    const tens=roll===100?0:Math.floor(roll/10)*10,ones=roll===100?0:roll%10;
    td.querySelector("span").textContent=tens;od.querySelector("span").textContent=ones;
    num.textContent=String(roll).padStart(2,"0");res.textContent=z.text.toUpperCase();
    ov.classList.remove("rolling");ov.classList.add("impact",(z.rank>=4)?"critical":(z.rank<=1)?"fumble":"normal");
    resultSting(z);
-   setTimeout(()=>{if(token===diceFxToken)ov.classList.add("hidden")},z.rank>=4||z.rank<=1?1350:1050);
+   setTimeout(()=>{
+     if(token!==diceFxToken)return;
+     ov.classList.add("hidden");
+     if(typeof onDone==="function")setTimeout(onDone,120);
+   },z.rank>=4||z.rank<=1?1450:1150);
   }
  },46);
 }
@@ -487,7 +518,7 @@ function deal(extra=0){
    battle.log.push({text:`${d.name}は拘束を振りほどいた！ ダメージなし。`,cls:"special"});
    return;
   }
-  let n=rawDamage(p)+(p.spirit||0)+extra;
+  let n=rawDamage(p)+(p.spirit||0)+(p.tauntDamage||0)+extra;
   if(d.state.guard){n=Math.max(0,n-2);d.state.guard=false}
   const hpBefore=d.hp;
   d.hp=Math.max(0,d.hp-n);
@@ -499,25 +530,27 @@ function deal(extra=0){
   return;
  }
 
- const n0=rawDamage(p)+(p.spirit||0)+extra;let n=n0;
+ const n0=rawDamage(p)+(p.spirit||0)+(p.tauntDamage||0)+extra;let n=n0;
  if(d.state.guard){if(p.type==="heavy"){d.state.guard=false;battle.log.push({text:"💥 ガードブレイク！",cls:"special"})}else{n=Math.max(0,n-2);d.state.guard=false}}
  const hpBefore=d.hp;d.hp=Math.max(0,d.hp-n);animate(p.defender,"hit");flavor("hit",p);battle.log.push({text:`${p.weapon.name} → ${n}ダメージ！`,cls:"damage"});checkStun(p.defender,hpBefore,n);checkEnd();
 }
 function attack(type){
  if(battle.pending||battle.gameOver)return;const c=cur(),cost=type==="heavy"?2:1;if(battle.ap<cost)return;
- const w=selected(c),skill=atkSkill(c,type),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;battle.ap-=cost;animate(battle.turn,type==="heavy"?"heavy":"attack");
+ const taunted=!!c.state.taunted;if(taunted)c.state.taunted=false;
+ const w=selected(c),skill=clamp(atkSkill(c,type)-activePenalty(c)-(taunted?10:0)),observed=c.state.attackBonus>0,spirit=c.state.spirit;c.state.attackBonus=0;c.state.spirit=0;if(type==="normal")c.state.normalAttacks++;battle.ap-=cost;
  flavor(type==="heavy"?"heavy":"attack",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
- const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"攻撃");if(fx)battle.log.push({text:fx,cls:"special"});
- if(z.type==="oneCritical")battle.ap=Math.min(2,battle.ap+1);if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.type==="failure")return finishAction();
- battle.pending={attacker:battle.turn,defender:1-battle.turn,type,result:z,observed,spirit,weapon:w};render();
+ const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name,()=>animate(battle.turn,type==="heavy"?"heavy":"attack"));battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"攻撃");if(fx)battle.log.push({text:fx,cls:"special"});
+ if(z.type==="oneCritical")battle.ap+=1;if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.type==="failure")return finishAction();
+ battle.pending={attacker:battle.turn,defender:1-battle.turn,type,result:z,observed,spirit,weapon:w,tauntDamage:taunted?2:0};render();
 }
 function grappleAttack(){
  if(battle.pending||battle.gameOver||battle.ap<1)return;const c=cur(),w=grapple(c);if(!w)return;
- const skill=clamp(w.skill+c.state.attackBonus);const observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;animate(battle.turn,"grapple");
+ const taunted=!!c.state.taunted;if(taunted)c.state.taunted=false;
+ const skill=clamp(w.skill+c.state.attackBonus-activePenalty(c)-(taunted?10:0));const observed=c.state.attackBonus>0;c.state.attackBonus=0;battle.ap--;
  flavor("grapple",{attacker:battle.turn,defender:1-battle.turn,weapon:w});
- const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name);battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"組みつき");if(fx)battle.log.push({text:fx,cls:"special"});
- if(z.type==="oneCritical")battle.ap=Math.min(2,battle.ap+1);if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.rank<3)return finishAction();
- battle.pending={attacker:battle.turn,defender:1-battle.turn,type:"grapple",result:z,observed,spirit:0,weapon:w};render();
+ const r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,w.name,()=>animate(battle.turn,"grapple"));battle.log.push({text:`${w.name} ${r}/${skill} → ${z.text}`});const fx=rollEffect(z,c.name,"組みつき");if(fx)battle.log.push({text:fx,cls:"special"});
+ if(z.type==="oneCritical")battle.ap+=1;if(z.type==="hundredFumble"){battle.ap=0;c.state.rp=0;return finishAction()}if(z.type==="fumble"){c.state.rp=Math.max(0,c.state.rp-1);return finishAction()}if(z.rank<3)return finishAction();
+ battle.pending={attacker:battle.turn,defender:1-battle.turn,type:"grapple",result:z,observed,spirit:0,weapon:w,tauntDamage:taunted?2:0};render();
 }
 function react(type){
  const p=battle.pending;if(!p||battle.gameOver)return;const d=chars[p.defender];
@@ -537,9 +570,27 @@ function action(id){
  if(id==="grapple")return grappleAttack();
  if(id==="dodge"||id==="counter"||id==="take")return react(id);
  if(battle.pending)return;const c=cur();
+ if(id==="taunt"){
+  const skill=specialSkill(c,"app"),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,"TAUNT / APP×5");
+  battle.log.push({text:`挑発 APP×5 ${r}/${skill} → ${z.text}`,cls:"special"});
+  if(z.rank>=3){foe().state.taunted=true;battle.log.push({text:`🔥 ${foe().name}は挑発された！ 次の行動は攻撃系のみ / 与ダメ+2 / 命中-10。`,cls:"special"})}
+  return finishAction();
+ }
+ if(id==="analyze"){
+  const skill=clamp(specialSkill(c,"int")-activePenalty(c)),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,"ANALYZE / INT×5");
+  battle.log.push({text:`分析 INT×5 ${r}/${skill} → ${z.text}`,cls:"special"});
+  if(z.rank>=3){c.state.attackBonus=20;c.state.analyzed=true;battle.log.push({text:`👁 分析成功！ 次の攻撃+20 / 相手回避-15。`,cls:"special"})}
+  return finishAction();
+ }
+ if(id==="intimidate"){
+  if(c.mp<2)return;
+  c.mp-=2;const skill=clamp(specialSkill(c,"pow")-activePenalty(c)),r=rollD100(),z=judgeRoll(r,skill);showDiceFx(r,skill,z,"INTIMIDATE / POW×5");
+  battle.log.push({text:`威圧 POW×5 ${r}/${skill} → ${z.text} / MP-2`,cls:"special"});
+  if(z.rank>=3){foe().state.intimidated=true;battle.log.push({text:`⚡ ${foe().name}は萎縮した！ 次の能動判定-10。`,cls:"special"})}
+  return finishAction();
+ }
  if(id==="guard"&&battle.ap>=1){c.state.guard=true;battle.ap--;battle.log.push({text:`${c.name}は防御態勢。`});finishAction()}
- if(id==="observe"&&battle.ap>=1){c.state.attackBonus=20;battle.ap--;battle.log.push({text:`${c.name}は観察。次の攻撃+20。`});finishAction()}
- if(id==="heal"&&battle.ap>=2){battle.ap-=2;const r=rollD100(),z=judgeRoll(r,c.skills.firstAid);showDiceFx(r,c.skills.firstAid,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${c.skills.firstAid} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
+  if(id==="heal"&&battle.ap>=2){battle.ap-=2;const r=rollD100(),z=judgeRoll(r,c.skills.firstAid);showDiceFx(r,c.skills.firstAid,z,"FIRST AID");let h=z.type==="oneCritical"?5:z.type==="critical"?rollDice(3)+2:z.type==="success"?rollDice(3):0;if(h)c.hp=Math.min(c.maxHp,c.hp+h);if(z.type==="hundredFumble")c.hp=Math.max(1,c.hp-2);battle.log.push({text:`応急手当 ${r}/${c.skills.firstAid} → ${z.text}${h?` / HP+${h}`:z.type==="hundredFumble"?" / HP-2":""}`});if(z.type==="oneCritical")battle.log.push({text:"🌟 完璧な応急処置！ HPを5回復。",cls:"special"});else if(z.type==="critical")battle.log.push({text:"✨ 的確な応急処置！ 回復量が1D3+2に強化。",cls:"special"});else if(z.type==="hundredFumble")battle.log.push({text:"☠ 応急手当で100ファンブル！ 処置を誤りHP-2（HP1未満にはならない）。",cls:"special"});else if(z.type==="fumble")battle.log.push({text:"💀 応急手当に失敗。回復は発生しない。",cls:"special"});finishAction()}
  if(netMode==="online"&&isHost&&!applyingNet)syncState();
 }
 function stat(label,v){return `<div class="stat"><span>${label}</span><b>${v}</b></div>`}
@@ -550,13 +601,20 @@ function render(){
    clearTimeout(render._syncTimer);
    render._syncTimer=setTimeout(syncState,0);
  }
- chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span>RP ${c.state.rp}</span>${c.state.spirit?`<span>闘志 ${c.state.spirit}</span>`:""}${c.state.guard?"<span>防御</span>":""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
- $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent="●".repeat(battle.ap)+"○".repeat(Math.max(0,2-battle.ap));
+ chars.forEach((c,i)=>{const n=i+1;$("name"+n).textContent=c.name;$("hp"+n).textContent=`${c.hp} / ${c.maxHp}`;$("hpbar"+n).style.width=`${100*c.hp/c.maxHp}%`;$("stats"+n).innerHTML=stat("STR",c.str)+stat("DB",c.db||"0")+stat("攻撃",c.skills.attack)+stat("回避",c.skills.dodge);$("states"+n).innerHTML=`<span class="resource-chip rp-chip">RP ${c.state.rp}</span><span class="resource-chip mp-chip">MP ${c.mp}/${c.maxMp}</span>${c.state.taunted?"<span>挑発</span>":""}${c.state.intimidated?"<span>萎縮</span>":""}${c.state.spirit?`<span>闘志 ${c.state.spirit}</span>`:""}${c.state.guard?"<span>防御</span>":""}`;const img=$("portrait"+n);if(c.image){img.src=c.image;img.style.display="block"}else img.style.display="none"});
+ $("round").textContent=`ROUND ${battle.round}`;$("turn-name").textContent=battle.pending?"リアクション":`${cur().name}のターン`;$("ap").textContent=`AP ${battle.ap}`;
  const c=cur(),w=selected(c),g=grapple(c);$("attack-chance").textContent=`判定 ${atkSkill(c)}%`;$("attack-detail").textContent=`${w.name} ${w.skill}% / ${w.damage}`;$("heavy-chance").textContent=`判定 ${atkSkill(c,"heavy")}%`;$("heavy-detail").textContent=`${w.name} / ${w.damage}+1D4`;$("grapple-chance").textContent=g?`判定 ${g.skill}%`:"技能なし";$("grapple-detail").textContent=g?`${g.damage} / STR対抗`:"組み付きなし";$("heal-chance").textContent=`判定 ${c.skills.firstAid}%`;
+ $("analyze-chance").textContent=`INT×5 ${specialSkill(c,"int")}%`;
+ $("taunt-chance").textContent=`APP×5 ${specialSkill(c,"app")}%`;
+ $("intimidate-chance").textContent=`POW×5 ${specialSkill(c,"pow")}%`;
  $("actions").classList.toggle("hidden",!!battle.pending);$("reactions").classList.toggle("hidden",!battle.pending);
- ["attack","heavy","grapple","guard","observe","heal"].forEach(id=>$(id).disabled=!!battle.pending||battle.gameOver||!canActHere());
- if(!battle.pending){$("attack").disabled||=battle.ap<1;$("heavy").disabled||=battle.ap<2;$("grapple").disabled||=battle.ap<1||!g;$("guard").disabled||=battle.ap<1;$("observe").disabled||=battle.ap<1;$("heal").disabled||=battle.ap<2}
- if(battle.pending){const d=chars[battle.pending.defender];$("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / 2RP`;$("counter-detail").textContent=`判定 ${counterSkill(d)}% / 1RP`;$("dodge").disabled=d.state.rp<2||!canActHere();$("counter").disabled=d.state.rp<1||!canActHere();$("take").disabled=!canActHere()}
+ ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal"].forEach(id=>$(id).disabled=!!battle.pending||battle.gameOver||!canActHere());
+ if(!battle.pending){
+ $("attack").disabled||=battle.ap<1;$("heavy").disabled||=battle.ap<2;$("grapple").disabled||=battle.ap<1||!g;$("guard").disabled||=battle.ap<1;$("heal").disabled||=battle.ap<2;
+ $("intimidate").disabled||=c.mp<2;
+ if(c.state.taunted){["guard","analyze","taunt","intimidate","heal"].forEach(id=>$(id).disabled=true)}
+}
+ if(battle.pending){const d=chars[battle.pending.defender];$("dodge-detail").textContent=`判定 ${dodgeSkill(d,battle.pending.observed)}% / COST 2 RP`;$("counter-detail").textContent=`判定 ${counterSkill(d)}% / COST 1 RP`;$("dodge").disabled=d.state.rp<2||!canActHere();$("counter").disabled=d.state.rp<1||!canActHere();$("take").disabled=!canActHere()}
  $("log").innerHTML=battle.log.map(x=>`<div class="${x.cls||""}">${String(x.text).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))}</div>`).join("");$("log").scrollTop=$("log").scrollHeight;;if(comMode)scheduleCom();
 }
 document.querySelectorAll(".p-tab").forEach(btn=>btn.addEventListener("click",()=>{const pl=btn.dataset.player;document.querySelectorAll(`.p-tab[data-player="${pl}"]`).forEach(x=>x.classList.toggle("active",x===btn));$(pl+"-manual").classList.toggle("hidden",btn.dataset.tab!=="manual");$(pl+"-json").classList.toggle("hidden",btn.dataset.tab!=="json")}));
@@ -565,8 +623,8 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.31");
-["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
+setOnlineStatus("オンライン：操作できます / BUILD 2.33");
+["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
 
@@ -598,7 +656,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.31")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.33")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

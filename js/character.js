@@ -85,7 +85,7 @@ function parseCcf(raw){
  if(!attacks.some(a=>a.kind==="damage")) attacks.push({name:"攻撃",skill:50,damage:"1D4+1",kind:"damage"});
  const best=chooseBestAttack(attacks);
  return{
-   name:d.name||"探索者",image:d.image||"",maxHp:+getParam("HP",10),str:+getParam("STR",10),dex:+getParam("DEX",10),db,
+   name:d.name||"探索者",image:d.image||"",maxHp:+getParam("HP",10),maxMp:+getParam("MP",10),str:+getParam("STR",10),dex:+getParam("DEX",10),app:+getParam("APP",10),pow:+getParam("POW",10),int:+getParam("INT",10),db,
    attack:best.skill,dodge:findSkill(["回避"],Math.floor(+getParam("DEX",10)*2)),firstAid:findSkill(["応急手当"],30),attacks
  };
 }
