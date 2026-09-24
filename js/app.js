@@ -49,11 +49,34 @@ function cur(){return chars[battle.turn]}
 function foe(){return chars[1-battle.turn]}
 function grapple(c){return (c.attacks||[]).find(a=>a.kind==="grapple")||null}
 function fresh(base){
- const c=freshCharacter(base);c.state.rp=2;c.state.attackBonus=0;c.state.guard=false;c.state.spirit=0;c.state.normalAttacks=0;c.state.nextApPenalty=0;return c
+ const attacks=(base.attacks||[]).map(a=>({...a}));
+ const best=chooseBestAttack(attacks);
+ return {
+   ...base,
+   attacks,
+   hp:base.maxHp,
+   maxHp:base.maxHp,
+   db:base.db||"0",
+   skills:{
+     attack:Number(base.attack ?? best.skill ?? 50),
+     dodge:Number(base.dodge ?? 40),
+     firstAid:Number(base.firstAid ?? 30)
+   },
+   state:{
+     rp:2,
+     attackBonus:0,
+     guard:false,
+     spirit:0,
+     normalAttacks:0,
+     nextApPenalty:0
+   }
+ };
 }
 function start(){
  try{
-  save("p1");save("p2");chars=[fresh(p1),fresh(p2)];
+  save("p1");save("p2");
+  if(!p1||!p2)throw new Error("PLAYER 1 / PLAYER 2 を確定してください");
+  chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:2,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
   battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});render();

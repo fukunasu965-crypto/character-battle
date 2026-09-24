@@ -64,3 +64,6 @@ v1.14: main.jsに残存していた未定義$()をel()へ統一。さらにchara
 
 
 v2.0: 旧runtimeの継ぎ足し修正を停止し、オフライン対戦部分を単一app.jsとして再構築。JSON読込・キャラ確定・画像・対戦開始・通常/強攻撃/組み付き/防御/観察/応急手当/回避/反撃/受けるを同一runtimeで管理。旧network/battle/mainはHTMLから読み込まない。オンラインは安定化後に再実装。
+
+
+v2.1: オフライン開始不能の原因を修正。v2.0の新しい入力データ形式を、旧character.js用freshCharacter()へ渡していたため戦闘初期化時に例外が発生していた。app.js内fresh()を新形式専用に再実装し、hp/maxHp/skills/state/attacksを戦闘用データへ直接変換するよう変更。
