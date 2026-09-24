@@ -339,7 +339,7 @@ function checkEnd(){
 let bgmEnabled=true;
 const battleBgm=new Audio("audio/battle.mp3");
 battleBgm.loop=true;
-battleBgm.volume=0.25;
+battleBgm.volume=0.10;
 battleBgm.preload="auto";
 
 // v2.35: ダイスの画面演出・効果音は使用しない
