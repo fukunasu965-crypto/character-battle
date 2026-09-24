@@ -12,6 +12,16 @@ function damageExpected(expr){
  for(const m of rest.matchAll(/[+-]?\d+/g)) total+=+m[0];
  return matched||total?total:0;
 }
+function maxDamageExpr(expr){
+ let s=String(expr||"0").toUpperCase().replace(/\s/g,""),total=0;
+ for(const m of s.matchAll(/([+-]?)(\d*)D(\d+)/g)){
+   let sign=m[1]==="-"?-1:1,count=+(m[2]||1),sides=+m[3];
+   total+=sign*count*sides;
+ }
+ let rest=s.replace(/([+-]?)(\d*)D(\d+)/g,"");
+ for(const m of rest.matchAll(/[+-]?\d+/g)) total+=+m[0];
+ return Math.max(0,total);
+}
 function attackExpectedValue(a){return damageExpected(a.damage)*(Math.max(0,Math.min(100,+a.skill||0))/100)}
 function chooseBestAttack(arr){
  let pool=(arr||[]).filter(a=>a.kind==="damage" && damageExpected(a.damage)>0);
