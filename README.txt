@@ -61,3 +61,6 @@ v1.13: 対戦開始時の ReferenceError（inBattle/inBattale未定義）を修�
 
 
 v1.14: main.jsに残存していた未定義$()をel()へ統一。さらにcharacter.jsのclamp()とbattle.jsのclamp宣言がブラウザのclassic scriptグローバルで衝突していたため、battle側をbclampへ変更。これらが初期化を止め、JSON読込・確定ボタンを無反応にしていた原因。
+
+
+v2.0: 旧runtimeの継ぎ足し修正を停止し、オフライン対戦部分を単一app.jsとして再構築。JSON読込・キャラ確定・画像・対戦開始・通常/強攻撃/組み付き/防御/観察/応急手当/回避/反撃/受けるを同一runtimeで管理。旧network/battle/mainはHTMLから読み込まない。オンラインは安定化後に再実装。
