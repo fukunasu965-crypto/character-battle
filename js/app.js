@@ -161,6 +161,7 @@ function setupConnection(c,hostSide){
  else conn.on("open",beginHandshake);
 }
 
+function cleanRoomCode(v){return String(v||"").replace(/\D/g,"").slice(0,4)}
 function hostOnline(){
  try{
   const code=cleanRoomCode($("host-code").value);
