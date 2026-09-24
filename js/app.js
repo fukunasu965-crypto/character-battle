@@ -228,7 +228,7 @@ function start(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});render();
+  battle.log.push({text:`戦闘開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();
  }catch(e){console.error(e);toast("対戦開始エラー："+e.message)}
 }
 
@@ -240,7 +240,7 @@ function startCom(){
   chars=[fresh(p1),fresh(p2)];
   battle={turn:chars[0].dex>=chars[1].dex?0:1,round:1,ap:1,pending:null,gameOver:false,log:[]};
   $("lobby").classList.add("hidden");$("battle-screen").classList.remove("hidden");$("battle-screen").classList.add("active");
-  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});render();scheduleCom();
+  battle.log.push({text:`COM対戦開始！ ${cur().name}のターン。`,cls:"special"});startBattleBgm();render();scheduleCom();
  }catch(e){console.error(e);toast("COM対戦開始エラー："+e.message)}
 }
 function comIsActor(){
@@ -248,16 +248,16 @@ function comIsActor(){
  return (battle.pending?battle.pending.defender:battle.turn)===1;
 }
 function scheduleCom(){
- if(!battle||battle.mode!=="com"||battle.gameOver)return;
+ if(!battle||!comMode||battle.gameOver)return;
  const needsReaction=!!battle.pending&&battle.pending.defender===1;
  const needsAction=!battle.pending&&battle.turn===1;
  if(needsReaction||needsAction)comStep();
 }
 function comStep(){
- if(!battle||battle.mode!=="com"||battle.gameOver)return;
+ if(!battle||!comMode||battle.gameOver)return;
  clearTimeout(comStep._timer);
  comStep._timer=setTimeout(()=>{
-  if(!battle||battle.mode!=="com"||battle.gameOver)return;
+  if(!battle||!comMode||battle.gameOver)return;
   const c=chars[1],t=chars[0];
 
   /* COM defender: pending reaction must be resolved even though battle.turn is P1. */
@@ -363,12 +363,7 @@ const battleBgm=new Audio("audio/battle.mp3");
 battleBgm.loop=true;
 battleBgm.volume=0.05;
 battleBgm.preload="auto";
-
-document.addEventListener("click",(ev)=>{
- const t=ev.target.closest?.("#local-start,#com-start,#start-com,#online-start,#start-local,[data-start-battle]");
- if(t && bgmEnabled) battleBgm.play().catch(()=>{});
-},{capture:true});
-
+battleBgm.addEventListener("error",()=>console.error("BGM load error: audio/battle.mp3 が見つからないか再生できません。"));
 
 // v2.38: ダイスが転がる演出は使わず、出目と成否だけを短く表示する
 let rollResultFxToken=0;
@@ -399,8 +394,11 @@ function showDiceFx(roll,target,z,label="1D100",onDone=null){
 }
 
 function startBattleBgm(){
- if(!bgmEnabled || !battleBgm.paused)return;
- battleBgm.play().catch(()=>{});
+ if(!bgmEnabled)return;
+ battleBgm.volume=0.05;
+ const playNow=()=>battleBgm.play().catch(err=>console.warn("BGM play failed:",err));
+ if(battleBgm.readyState>=2)playNow();
+ else battleBgm.addEventListener("canplay",playNow,{once:true});
 }
 function resetBattleBgm(){
  battleBgm.pause();
@@ -604,7 +602,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.46");
+setOnlineStatus("オンライン：操作できます / BUILD 2.48");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -637,7 +635,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.46")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.48")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
@@ -659,5 +657,5 @@ document.addEventListener("click",resultReturnToLobby,true);
 document.addEventListener("click",e=>{
  const b=e.target?.closest?.("#bgm-toggle"); if(!b)return;
  bgmEnabled=!bgmEnabled;b.textContent=bgmEnabled?"♫ BGM":"♫ BGM OFF";
- if(bgmEnabled&&battle)startBattleBgm();else battleBgm.pause();
+ if(bgmEnabled)startBattleBgm();else battleBgm.pause();
 });
