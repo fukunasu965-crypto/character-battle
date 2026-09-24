@@ -270,12 +270,14 @@ function scheduleCom(){
  if(!battle||!comMode||battle.gameOver)return;
  const needsReaction=!!battle.pending&&battle.pending.defender===1;
  const needsAction=!battle.pending&&battle.turn===1;
- if(needsReaction||needsAction)comStep();
+ if((needsReaction||needsAction)&&!comThinking)comStep();
 }
 function comStep(){
- if(!battle||!comMode||battle.gameOver)return;
+ if(!battle||!comMode||battle.gameOver||comThinking)return;
+ comThinking=true;
  clearTimeout(comStep._timer);
  comStep._timer=setTimeout(()=>{
+  comThinking=false;
   if(!battle||!comMode||battle.gameOver)return;
   const c=chars[1],t=chars[0];
 
@@ -503,8 +505,8 @@ function checkStun(defenderIndex,hpBefore,damage){
  battle.log.push({text:"◆ "+text,cls:"flavor"});
  battle.log.push({text:`気絶ロール CON×5 ${r}/${con} → ${z.text}`,cls:"special"});
  if(z.rank<3){
-  d.state.nextApPenalty=Math.max(d.state.nextApPenalty||0,1);
-  battle.log.push({text:`💫 ${d.name}は衝撃に耐えきれない！ 次のターンAP -1。`,cls:"special"});
+  d.state.ap=(d.state.ap||0)-1;
+  battle.log.push({text:`💫 ${d.name}は衝撃に耐えきれない！ AP -1 → ${d.state.ap}`,cls:"special"});
   animate(defenderIndex,"hit");
  }else{
   battle.log.push({text:`✓ ${d.name}は意識を保った！ AP減少なし。`,cls:"special"});
@@ -702,7 +704,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.64");
+setOnlineStatus("オンライン：操作できます / BUILD 2.65");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -735,7 +737,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.64")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.65")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

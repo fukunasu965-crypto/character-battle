@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=264">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=265">
 <style>
 .result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
 .result-overlay.hidden{display:none!important}
@@ -71,7 +71,7 @@
 </div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.64</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.65</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -206,15 +206,15 @@
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.64 — stable offline rebuild</footer>
+<footer>Character Battle v2.65 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=264"></script>
-<script src="js/character.js?v=264"></script>
-<script src="js/app.js?v=264"></script>
+<script src="js/dice.js?v=265"></script>
+<script src="js/character.js?v=265"></script>
+<script src="js/app.js?v=265"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div><p class="help-note">⚡ 回避の成功ランクが攻撃側を1以上上回った場合、自動で反撃し、使用中の通常攻撃武器のダメージを与えます。追加AP消費・追加命中判定はありません。</p><p class="help-note">⚡ AP変動：クリティカル(2～5)はAP+1、1クリティカルはAP+2、ファンブル(96～99)はAP-1、100ファンブルはAP-2。APはマイナスまで下がり、自然回復またはクリティカルによる増加で0以上に戻るまでAP消費行動は行えません。</p><p class="help-note">🎲 クリファンAPルールは、攻撃・組みつき・回避・反撃・分析・挑発・威圧・応急手当などに適用されます。ただし、組みつき後のSTR対抗ロールとダメージによるCON判定は対象外です。</p><p class="help-note">✨ クリティカル固有効果：攻撃系は確定最大ダメージ、組みつきはSTR対抗を免除。分析は次攻撃+30/相手回避-25、挑発は命中-20、威圧は次の被ダメージを1/4に強化します。通常成功時は分析+20/-15、挑発-10、威圧は被ダメージ半減です。これらに加えて共通のクリティカルAP+1（1クリはAP+2）も発生します。</p><p class="help-note">⚔️ 回避・反撃のクリティカル固有効果は、クリティカルを出したうえで攻撃側より成功ランクが1以上高い場合のみ発動します。回避は反撃へ派生し、反撃は最大3ダメージになります。クリティカルのAP+1（1クリはAP+2）はランク差に関係なく、クリティカルを出した時点で適用されます。</p>
 <p class="help-note"><strong>🎯 回避・反撃のクリティカルと成功ランク</strong><br>
 クリティカルを出した時点でAPボーナスを獲得します（2～5クリ：AP+1、1クリ：AP+2）。ただし、APを獲得しても回避・反撃の成功が保証されるわけではありません。攻撃側と防御側の成功ランクを比較し、防御側のランクが攻撃側以上の場合のみ防御成功です。<br>
 回避・反撃のクリティカル固有効果は「防御側がクリティカル」かつ「攻撃側より成功ランクが1以上高い」ときだけ発動します。回避なら反撃へ派生し、反撃なら最大ダメージになります。<br>
 例：攻撃側が1クリ（ランク5）、回避側がクリティカル（ランク4）の場合、回避側はAP+1を獲得しますが、ランク4＜5なので回避失敗です。逆に攻撃側がクリティカル（ランク4）、回避側が1クリ（ランク5）なら、AP+2を獲得し、回避成功＋反撃が発生します。</p>
-</body></html>
+<p class="help-note"><strong>💫 気絶判定</strong><br>大ダメージによるCON判定に失敗した場合は、その場でAP-1されます。APが0以下でもそのまま負債になります。CON判定自体にはクリティカル／ファンブルによるAP増減はありません。</p></body></html>
