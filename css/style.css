@@ -66,3 +66,12 @@
 .player-setup-card{margin-top:20px;padding:18px;border:1px solid var(--line);border-radius:16px;background:#111823}
 .player-setup-card textarea{width:100%;min-height:150px;box-sizing:border-box;margin:8px 0 10px}
 .player-setup-card>button{width:100%;margin-bottom:10px}
+
+/* v1.9 lobby consistency */
+.character-grid{align-items:start}
+.character-card{height:100%;box-sizing:border-box}
+.character-card .tabs{margin-bottom:14px}
+.character-card textarea{width:100%;min-height:180px;box-sizing:border-box}
+.character-card .primary{width:100%;margin-top:14px}
+.play-card{margin-top:10px}
+@media(min-width:850px){.character-grid{grid-template-columns:1fr 1fr!important}}

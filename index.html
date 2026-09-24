@@ -8,56 +8,74 @@
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v1.0</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v1.9</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
 <section id="lobby" class="screen">
   <div class="hero">
     <h2>キャラクターを持ち寄って、1対1で対戦。</h2>
-    <p>同じPCでも、離れた相手とも遊べます。オンライン対戦では自分のキャラクターの操作だけが有効になります。</p>
+    <p>オフラインではPLAYER 1 / PLAYER 2を同じ形式で設定できます。オンラインでは自分のキャラクターだけ設定します。</p>
   </div>
-  <div class="lobby-grid">
-    <article class="card">
-      <h3>① キャラクター</h3>
-      <div class="tabs"><button class="tab active" data-tab="manual">手入力</button><button class="tab" data-tab="ccfolia">ココフォリアJSON</button></div>
-      <div id="manual-panel">
-        <label>キャラクター画像<input id="char-image" type="file" accept="image/*"></label><div id="char-image-preview" class="setup-image-preview">NO IMAGE</div><label>名前<input id="char-name" value="山田 太郎"></label>
-        <div class="three"><label>HP<input id="char-hp" type="number" value="14" min="1"></label><label>STR<input id="char-str" type="number" value="65"></label><label>DEX<input id="char-dex" type="number" value="65"></label></div>
-        <div class="three"><label>攻撃<input id="char-atk" type="number" value="70"></label><label>攻撃ダメージ<input id="char-dmg" value="1d4+1"></label><label>回避<input id="char-dodge" type="number" value="60"></label><label>応急手当<input id="char-aid" type="number" value="60"></label></div>
+
+  <div class="lobby-grid character-grid">
+    <article class="card character-card">
+      <h3>① PLAYER 1</h3>
+      <div class="tabs">
+        <button class="p-tab active" data-player="p1" data-tab="manual">手入力</button>
+        <button class="p-tab" data-player="p1" data-tab="json">ココフォリアJSON</button>
       </div>
-      <div id="ccfolia-panel" class="hidden">
-        <p class="hint">ココフォリアの「駒をクリップボードにコピー」で得たJSONを貼り付けます。HP・DEX・技能は候補から自動検出し、下で修正できます。</p>
+      <div id="p1-manual">
+        <label>キャラクター画像<input id="char-image" type="file" accept="image/*"></label>
+        <div id="char-image-preview" class="setup-image-preview">NO IMAGE</div>
+        <label>名前<input id="char-name" value="PLAYER 1"></label>
+        <div class="three"><label>HP<input id="char-hp" type="number" value="14"></label><label>STR<input id="char-str" type="number" value="10"></label><label>DEX<input id="char-dex" type="number" value="10"></label></div>
+        <div class="three"><label>攻撃<input id="char-atk" type="number" value="50"></label><label>攻撃ダメージ<input id="char-dmg" value="1D4+1"></label><label>回避<input id="char-dodge" type="number" value="40"></label></div>
+        <label>応急手当<input id="char-aid" type="number" value="30"></label>
+      </div>
+      <div id="p1-json" class="hidden">
+        <p class="hint">ココフォリアの「駒をクリップボードにコピー」で得たJSONを貼り付けてください。</p>
         <textarea id="ccfolia-json" placeholder='{"kind":"character","data":{...}}'></textarea>
-        <button id="parse-json" class="secondary">JSONを読み込む</button>
+        <button id="parse-json" class="secondary" type="button">JSONを読み込む</button>
         <div id="import-result" class="hint"></div>
       </div>
-      <button id="save-char" class="primary">このキャラクターを使用</button>
+      <button id="save-char" class="primary" type="button">PLAYER 1を確定</button>
       <div id="my-preview" class="preview">キャラクター未確定</div>
     </article>
 
-    <article class="card">
-      <h3>② 遊び方</h3>
-      <div class="offline-p2 player-setup-card">
-<h3>PLAYER 2 キャラクター</h3>
-<div class="setup-tabs"><button type="button" class="active">ココフォリアJSON / 手動入力</button></div>
-<label>ココフォリアJSON<textarea id="p2-ccfolia-json" placeholder='{"kind":"character","data":{...}}'></textarea></label>
-<button id="p2-parse-json" type="button">JSONを読み込む</button>
-<div id="p2-import-result" class="hint"></div>
-<label>キャラクター画像<input id="p2-image" type="file" accept="image/*"></label>
-<div id="p2-image-preview" class="setup-image-preview">NO IMAGE</div>
-<label>名前<input id="p2-name" value="PLAYER 2"></label>
-<div class="three"><label>HP<input id="p2-hp" type="number" value="13"></label><label>STR<input id="p2-str" type="number" value="10"></label><label>DEX<input id="p2-dex" type="number" value="10"></label></div>
-<div class="three"><label>攻撃<input id="p2-atk" type="number" value="50"></label><label>攻撃ダメージ<input id="p2-dmg" value="1D4+1"></label><label>回避<input id="p2-dodge" type="number" value="40"></label></div>
-<label>応急手当<input id="p2-aid" type="number" value="30"></label>
-</div>
-<button id="local-start" class="mode"><b>同じPCで対戦</b><small>PLAYER 1 / PLAYER 2 の入力キャラで対戦</small></button>
-      <button id="host-btn" class="mode"><b>オンライン部屋を作る</b><small>あなたが PLAYER 1</small></button>
-      <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn">参加</button></div>
-      <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
-      <p class="hint">オンライン対戦は2人用です。部屋コードを相手に送ってください。</p>
+    <article class="card character-card">
+      <h3>② PLAYER 2</h3>
+      <div class="tabs">
+        <button class="p-tab active" data-player="p2" data-tab="manual">手入力</button>
+        <button class="p-tab" data-player="p2" data-tab="json">ココフォリアJSON</button>
+      </div>
+      <div id="p2-manual">
+        <label>キャラクター画像<input id="p2-image" type="file" accept="image/*"></label>
+        <div id="p2-image-preview" class="setup-image-preview">NO IMAGE</div>
+        <label>名前<input id="p2-name" value="PLAYER 2"></label>
+        <div class="three"><label>HP<input id="p2-hp" type="number" value="13"></label><label>STR<input id="p2-str" type="number" value="10"></label><label>DEX<input id="p2-dex" type="number" value="10"></label></div>
+        <div class="three"><label>攻撃<input id="p2-atk" type="number" value="50"></label><label>攻撃ダメージ<input id="p2-dmg" value="1D4+1"></label><label>回避<input id="p2-dodge" type="number" value="40"></label></div>
+        <label>応急手当<input id="p2-aid" type="number" value="30"></label>
+      </div>
+      <div id="p2-json" class="hidden">
+        <p class="hint">PLAYER 2のココフォリアJSONを貼り付けてください。</p>
+        <textarea id="p2-ccfolia-json" placeholder='{"kind":"character","data":{...}}'></textarea>
+        <button id="p2-parse-json" class="secondary" type="button">JSONを読み込む</button>
+        <div id="p2-import-result" class="hint"></div>
+      </div>
+      <button id="save-p2" class="primary" type="button">PLAYER 2を確定</button>
+      <div id="p2-preview" class="preview">キャラクター未確定</div>
     </article>
   </div>
+
+  <article class="card play-card">
+    <h3>③ 遊び方</h3>
+    <button id="local-start" class="mode" type="button"><b>同じPCで対戦</b><small>上のPLAYER 1 / PLAYER 2で対戦開始</small></button>
+    <button id="host-btn" class="mode" type="button"><b>オンライン部屋を作る</b><small>あなたがPLAYER 1になります</small></button>
+    <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn" type="button">参加</button></div>
+    <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room" type="button">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
+    <p class="hint">オンライン参加時はPLAYER 1欄に自分のキャラクターを設定してから参加してください。</p>
+  </article>
 </section>
 
 <section id="battle-screen" class="screen hidden">
@@ -67,13 +85,17 @@
   </div>
   <section class="fighters">
     <article class="fighter" id="fighter1">
-      <div class="owner">PLAYER 1</div><div class="portrait-stage right"><div class="portrait-wrap" id="portrait-wrap1"><img id="portrait1" class="portrait" alt=""><div class="hit-flash"></div></div></div><h2 id="name1"></h2>
+      <div class="owner">PLAYER 1</div>
+      <div class="portrait-stage left"><div class="portrait-wrap" id="portrait-wrap1"><img id="portrait1" class="portrait" alt=""><div class="hit-flash"></div></div></div>
+      <h2 id="name1"></h2>
       <div class="hp-line"><span>HP</span><strong id="hp1"></strong></div><div class="hpbar"><i id="hpbar1"></i></div>
       <div class="stat-grid" id="stats1"></div><div class="effects" id="effects1"></div>
     </article>
     <div class="vs">VS</div>
     <article class="fighter" id="fighter2">
-      <div class="owner">PLAYER 2</div><h2 id="name2"></h2>
+      <div class="owner">PLAYER 2</div>
+      <div class="portrait-stage right"><div class="portrait-wrap" id="portrait-wrap2"><img id="portrait2" class="portrait" alt=""><div class="hit-flash"></div></div></div>
+      <h2 id="name2"></h2>
       <div class="hp-line"><span>HP</span><strong id="hp2"></strong></div><div class="hpbar"><i id="hpbar2"></i></div>
       <div class="stat-grid" id="stats2"></div><div class="effects" id="effects2"></div>
     </article>
