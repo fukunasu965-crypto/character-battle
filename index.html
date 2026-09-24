@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=265">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=266">
 <style>
 .result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
 .result-overlay.hidden{display:none!important}
@@ -25,36 +25,67 @@
     <h2 id="help-title">BATTLE RULES</h2>
     <p class="help-lead">相手のHPを0にしたプレイヤーの勝利です。DEXが高い方から行動します。</p>
     <div class="help-grid">
-      <section><h3>ターンとAP / RP</h3>
+      <section><h3>ターンとAP</h3>
         <p><b>1ターンにつき1行動。</b>行動後はAPが残っていても相手のターンになります。</p>
-        <p><b>APは上限なしで持ち越し。</b>自分のターン開始時にAP+1 / RP+1（1ターン目から適用）。</p>
-        <p><b>1クリ：</b>AP+1。上限がないため、そのまま次ターン以降へ蓄積できます。</p>
+        <p>両者とも<b>AP2から開始</b>。最初の自分のターンには自然回復せず、<b>2回目以降の自分のターン開始時にAP+1</b>します。</p>
+        <p>APに上限はなく持ち越せます。APはファンブルなどで<b>0未満の負債</b>にもなり、自然回復やクリティカルで取り戻すまでAP消費行動はできません。</p>
+        <p><b>RPはありません。</b>攻撃もリアクションもAPを使用します。</p>
       </section>
+
+      <section><h3>D100の成功ランク</h3>
+        <p><b>1：</b>1クリ（ランク5）　<b>2～5：</b>クリティカル（ランク4）</p>
+        <p><b>成功：</b>ランク3　<b>失敗：</b>ランク2　<b>96～99：</b>ファンブル（ランク1）　<b>100：</b>100ファンブル（ランク0）</p>
+        <p>攻撃とリアクションを比べる場合は<b>成功ランクが高い側</b>が優先され、<b>同ランクなら防御側</b>が成功します。</p>
+      </section>
+
+      <section><h3>クリファンとAP</h3>
+        <p><b>1クリ：AP+2</b>　<b>2～5クリ：AP+1</b>　<b>96～99ファンブル：AP-1</b>　<b>100ファンブル：AP-2</b></p>
+        <p>このAP変動は出目が確定した時点で発生し、その判定自体の成否とは別に処理します。</p>
+        <p>対象は攻撃・組みつき・回避・反撃・分析・挑発・威圧・応急手当など。<b>STR対抗とCON判定だけはクリファンによるAP増減の対象外</b>です。</p>
+      </section>
+
       <section><h3>基本行動</h3>
-        <p><b>通常攻撃：AP1</b>　命中補正なし。</p>
-        <p><b>強攻撃：AP2</b>　命中−5 / 高威力。</p>
-        <p><b>組みつき：AP1</b>　命中後STR対抗。成功時のみダメージ＋次のAP回復を阻害。</p>
-        <p><b>ガード：AP1</b>　被ダメ−2 / 回避・反撃+15。</p>
-        <p><b>応急手当：AP2</b>　成功するとHP回復。</p>
+        <p><b>通常攻撃：AP1</b>　通常の命中判定と武器ダメージ。</p>
+        <p><b>強攻撃：AP2</b>　命中−5、武器ダメージに1D4を追加。</p>
+        <p><b>攻撃系クリティカル：</b>ダメージダイスを振らず<b>確定最大ダメージ</b>。強攻撃の追加1D4も最大値4になります。</p>
+        <p><b>組みつき：AP1</b>　命中後にSTR対抗。STR対抗成功でダメージを与え、相手の次回AP自然回復を1回阻害します。<b>組みつきがクリティカルならSTR対抗を免除</b>して拘束成功です。</p>
+        <p><b>応急手当：AP2</b>　成功1D3回復、クリティカル1D3+2、1クリ5回復。100ファンブルはHP-2（HP1未満にはなりません）。</p>
       </section>
+
       <section><h3>特殊行動 — AP0</h3>
-        <p>特殊行動は<b>APを消費しません</b>が、そのターンの1行動を使います。</p>
-        <p><b>分析：INT×5</b>　旧「観察」。成功で次の攻撃+20 / 相手回避−15。</p>
-        <p><b>挑発：APP×5</b>　成功すると相手の次行動は攻撃系のみ。その攻撃は<b>ダメージ+2 / 命中−10</b>。</p>
-        <p><b>威圧：POW×5 / MP2</b>　成功すると相手の<b>次の能動判定−10</b>。対象判定を行うまで保持。</p>
+        <p>特殊行動はAPを消費しませんが、そのターンの1行動を使います。</p>
+        <p><b>分析：INT×5</b>　成功で次の攻撃<b>命中+20 / 相手回避-15</b>。クリティカルなら<b>命中+30 / 相手回避-25</b>。</p>
+        <p><b>挑発：APP×5</b>　成功すると相手の次行動を攻撃系に限定し、その攻撃は<b>与ダメージ+2 / 命中-10</b>。クリティカルなら命中低下が<b>-20</b>になります。</p>
+        <p><b>威圧：POW×5 / MP2</b>　成功すると自分が<b>次に受けるダメージを半減</b>。クリティカルなら<b>1/4</b>に軽減します。実際にダメージを受けた時に効果を消費します。</p>
       </section>
+
       <section><h3>リアクション</h3>
-        <p><b>回避：AP1</b>　攻撃をかわします。</p>
-        <p><b>反撃：AP2</b>　命中−10で攻撃を返します。</p>
-        <p><b>受ける：AP0</b>　攻撃を受け、闘志+1（最大3）。強攻撃では増えません。</p>
+        <p><b>回避：AP1</b>　回避技能で判定します。</p>
+        <p><b>反撃：AP2</b>　<b>攻撃技能-10</b>で判定。成功すると攻撃を防ぎ、1D3ダメージを返します。</p>
+        <p><b>受ける：AP0</b>　攻撃をそのまま受けます。強攻撃以外なら闘志+1（最大3）。</p>
+        <p>回避・反撃がクリティカルでも、まず攻撃側との成功ランクを比較します。<b>相手よりランクが低ければ防御失敗</b>ですが、クリティカルのAPボーナスは獲得します。</p>
+        <p><b>クリティカル固有効果は「クリティカルを出し、かつ攻撃側より成功ランクが1以上高い」場合のみ発動。</b>回避は反撃へ派生し、反撃は1D3の<b>最大3ダメージ</b>になります。</p>
+        <p>例：攻撃1クリ（ランク5）vs 回避クリ（ランク4）→ AP+1は獲得するが回避失敗。攻撃クリ（ランク4）vs 回避1クリ（ランク5）→ AP+2、回避成功、さらに反撃発生。</p>
       </section>
-      <section><h3>大ダメージ・特殊な出目</h3>
-        <p>直前HPの半分以上のダメージで<b>CON×5</b>。失敗すると次のAP回復を1回阻害。</p>
-        <p><b>1：</b>最高ランク＋AP1回復　<b>2～5：</b>クリティカル　<b>96～99：</b>ファンブル　<b>100：</b>100ファンブル。</p>
-        <p class="help-note">対抗判定は成功ランクが高い側が勝利。同ランクなら防御側優先。</p>
+
+      <section><h3>リアクションのファンブル</h3>
+        <p><b>96～99：</b>防御失敗＋受けるダメージ+2。さらに共通ルールでAP-1。</p>
+        <p><b>100：</b>防御失敗＋受けるダメージ+4。さらに共通ルールでAP-2。</p>
+      </section>
+
+      <section><h3>闘志</h3>
+        <p>「受ける」で強攻撃以外を受けると<b>闘志+1</b>（最大3）。次の攻撃時にすべて消費し、闘志の数だけダメージを追加します。</p>
+        <p>闘志3なら次の攻撃に<b>命中+10</b>も加わります。</p>
+      </section>
+
+      <section><h3>大ダメージとCON判定</h3>
+        <p>ダメージを受ける直前のHPの<b>半分以上のダメージ</b>を一度に受けるとCON×5判定を行います。</p>
+        <p>失敗すると<b>その場でAP-1</b>。AP0ならAP-1の負債になります。</p>
+        <p>CON判定はクリファンAP処理の対象外です。STR対抗も同様です。</p>
       </section>
     </div>
   </div>
+</div>
 </div>
 
 <div id="toast"></div>
@@ -71,7 +102,7 @@
 </div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.65</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.66</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -137,7 +168,7 @@
     <button id="com-start" class="mode" type="button"><b>COMと対戦</b><small>PLAYER 1を操作 / PLAYER 2をCOMが操作</small></button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12)">
-      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.32</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
+      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.66</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
 
       <input id="host-code" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4桁のルームコード（例：1234）" autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:8px">
       <button id="host-btn" class="mode" type="button">
@@ -195,26 +226,21 @@
       <button id="heal"><span class="cost-badge ap-cost">AP 2</span><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>成功でHP回復</small></button>
       <button id="analyze" class="special-action"><span class="cost-badge free-cost">AP 0</span><b>👁 分析</b><strong class="chance" id="analyze-chance"></strong><small>成功：次攻撃+20 / 相手回避-15</small></button>
       <button id="taunt" class="special-action"><span class="cost-badge free-cost">AP 0</span><b>💬 挑発</b><strong class="chance" id="taunt-chance"></strong><small>成功：相手の次行動を攻撃限定</small></button>
-      <button id="intimidate" class="special-action"><span class="cost-badge mp-cost">MP 2</span><b>⚡ 威圧</b><strong class="chance" id="intimidate-chance"></strong><small>成功：相手の次の能動判定-10</small></button>
+      <button id="intimidate" class="special-action"><span class="cost-badge mp-cost">MP 2</span><b>⚡ 威圧</b><strong class="chance" id="intimidate-chance"></strong><small>成功：次の被ダメージ半減</small></button>
     </div>
     <div id="reactions" class="commands three hidden">
-      <button id="dodge"><span class="cost-badge rp-cost">RP 2</span><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
-      <button id="counter"><span class="cost-badge rp-cost">RP 1</span><b>⚔ 反撃</b><strong class="chance" id="counter-chance"></strong><small id="counter-detail"></small></button>
-      <button id="take"><span class="cost-badge free-cost">RP 0</span><b>💥 受ける</b><strong class="chance">判定なし</strong><small>0 RP / 闘志+1</small></button>
+      <button id="dodge"><span class="cost-badge ap-cost">AP 1</span><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
+      <button id="counter"><span class="cost-badge ap-cost">AP 2</span><b>⚔ 反撃</b><strong class="chance" id="counter-chance"></strong><small id="counter-detail"></small></button>
+      <button id="take"><span class="cost-badge free-cost">AP 0</span><b>💥 受ける</b><strong class="chance">判定なし</strong><small>AP 0 / 闘志+1</small></button>
     </div>
   </section>
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.65 — stable offline rebuild</footer>
+<footer>Character Battle v2.66 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=265"></script>
-<script src="js/character.js?v=265"></script>
-<script src="js/app.js?v=265"></script>
-<div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div><p class="help-note">⚡ 回避の成功ランクが攻撃側を1以上上回った場合、自動で反撃し、使用中の通常攻撃武器のダメージを与えます。追加AP消費・追加命中判定はありません。</p><p class="help-note">⚡ AP変動：クリティカル(2～5)はAP+1、1クリティカルはAP+2、ファンブル(96～99)はAP-1、100ファンブルはAP-2。APはマイナスまで下がり、自然回復またはクリティカルによる増加で0以上に戻るまでAP消費行動は行えません。</p><p class="help-note">🎲 クリファンAPルールは、攻撃・組みつき・回避・反撃・分析・挑発・威圧・応急手当などに適用されます。ただし、組みつき後のSTR対抗ロールとダメージによるCON判定は対象外です。</p><p class="help-note">✨ クリティカル固有効果：攻撃系は確定最大ダメージ、組みつきはSTR対抗を免除。分析は次攻撃+30/相手回避-25、挑発は命中-20、威圧は次の被ダメージを1/4に強化します。通常成功時は分析+20/-15、挑発-10、威圧は被ダメージ半減です。これらに加えて共通のクリティカルAP+1（1クリはAP+2）も発生します。</p><p class="help-note">⚔️ 回避・反撃のクリティカル固有効果は、クリティカルを出したうえで攻撃側より成功ランクが1以上高い場合のみ発動します。回避は反撃へ派生し、反撃は最大3ダメージになります。クリティカルのAP+1（1クリはAP+2）はランク差に関係なく、クリティカルを出した時点で適用されます。</p>
-<p class="help-note"><strong>🎯 回避・反撃のクリティカルと成功ランク</strong><br>
-クリティカルを出した時点でAPボーナスを獲得します（2～5クリ：AP+1、1クリ：AP+2）。ただし、APを獲得しても回避・反撃の成功が保証されるわけではありません。攻撃側と防御側の成功ランクを比較し、防御側のランクが攻撃側以上の場合のみ防御成功です。<br>
-回避・反撃のクリティカル固有効果は「防御側がクリティカル」かつ「攻撃側より成功ランクが1以上高い」ときだけ発動します。回避なら反撃へ派生し、反撃なら最大ダメージになります。<br>
-例：攻撃側が1クリ（ランク5）、回避側がクリティカル（ランク4）の場合、回避側はAP+1を獲得しますが、ランク4＜5なので回避失敗です。逆に攻撃側がクリティカル（ランク4）、回避側が1クリ（ランク5）なら、AP+2を獲得し、回避成功＋反撃が発生します。</p>
-<p class="help-note"><strong>💫 気絶判定</strong><br>大ダメージによるCON判定に失敗した場合は、その場でAP-1されます。APが0以下でもそのまま負債になります。CON判定自体にはクリティカル／ファンブルによるAP増減はありません。</p></body></html>
+<script src="js/dice.js?v=266"></script>
+<script src="js/character.js?v=266"></script>
+<script src="js/app.js?v=266"></script>
+<div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>
