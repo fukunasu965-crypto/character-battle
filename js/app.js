@@ -5,7 +5,7 @@ let imageData={p1:"",p2:""}, importedAttacks={p1:null,p2:null};
 let p1=null,p2=null,chars=[],battle=null;
 let netMode="local",myPlayerIndex=0,peer=null,conn=null,isHost=false,applyingNet=false,remoteIntent=false,comMode=false,comThinking=false;
 
-function toast(t){const x=$("toast");x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
+function toast(t){const x=$("toast");if(!x){console.log(t);return}x.textContent=t;x.classList.add("show");setTimeout(()=>x.classList.remove("show"),1800)}
 function num(id){return Number($(id).value)||0}
 function bindImage(input,preview,key){
  const node=$(input); if(!node)return;
@@ -545,7 +545,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.35");
+setOnlineStatus("オンライン：操作できます / BUILD 2.36");
 ["attack","heavy","grapple","guard","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -578,7 +578,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.35")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.36")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }

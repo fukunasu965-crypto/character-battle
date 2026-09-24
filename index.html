@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=235">
+<title>Character Battle</title><link rel="stylesheet" href="css/style.css?v=236">
 <style>
 .result-overlay{position:fixed!important;inset:0!important;width:100vw!important;height:100vh!important;z-index:99999!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:24px!important;box-sizing:border-box!important;background:rgba(4,6,11,.96)!important;backdrop-filter:blur(10px)}
 .result-overlay.hidden{display:none!important}
@@ -18,9 +18,49 @@
 </style>
 </head>
 <body><button id="bgm-toggle" class="bgm-toggle" type="button" title="戦闘BGM ON/OFF">♫ BGM</button>
+<button id="help-open-btn" class="help-open-btn" type="button" aria-label="ルールヘルプ">？ ルール</button>
+<div id="help-overlay" class="help-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="help-title">
+  <div class="help-panel">
+    <button id="help-close-btn" class="help-close-btn" type="button" aria-label="閉じる">×</button>
+    <h2 id="help-title">BATTLE RULES</h2>
+    <p class="help-lead">相手のHPを0にしたプレイヤーの勝利です。DEXが高い方から行動します。</p>
+    <div class="help-grid">
+      <section><h3>ターンとAP / RP</h3>
+        <p><b>1ターンにつき1行動。</b>行動後はAPが残っていても相手のターンになります。</p>
+        <p><b>AP・RPは上限なしで持ち越し。</b>自分のターン開始時にAP+1 / RP+1。</p>
+        <p><b>1クリ：</b>AP+1。上限がないため、そのまま次ターン以降へ蓄積できます。</p>
+      </section>
+      <section><h3>基本行動</h3>
+        <p><b>通常攻撃：AP1</b>　命中補正なし。</p>
+        <p><b>強攻撃：AP2</b>　命中−5 / 高威力。</p>
+        <p><b>組みつき：AP1</b>　命中後STR対抗。成功時のみダメージ＋次のAP回復を阻害。</p>
+        <p><b>ガード：AP1</b>　被ダメ−2 / 回避・反撃+15。</p>
+        <p><b>応急手当：AP2</b>　成功するとHP回復。</p>
+      </section>
+      <section><h3>特殊行動 — AP0</h3>
+        <p>特殊行動は<b>APを消費しません</b>が、そのターンの1行動を使います。</p>
+        <p><b>分析：INT×5</b>　旧「観察」。成功で次の攻撃+20 / 相手回避−15。</p>
+        <p><b>挑発：APP×5</b>　成功すると相手の次行動は攻撃系のみ。その攻撃は<b>ダメージ+2 / 命中−10</b>。</p>
+        <p><b>威圧：POW×5 / MP2</b>　成功すると相手の<b>次の能動判定−10</b>。対象判定を行うまで保持。</p>
+      </section>
+      <section><h3>リアクション</h3>
+        <p><b>回避：RP2</b>　攻撃をかわします。</p>
+        <p><b>反撃：RP1</b>　命中−10で攻撃を返します。</p>
+        <p><b>受ける：RP0</b>　攻撃を受け、闘志+1（最大3）。強攻撃では増えません。</p>
+      </section>
+      <section><h3>大ダメージ・特殊な出目</h3>
+        <p>直前HPの半分以上のダメージで<b>CON×5</b>。失敗すると次のAP回復を1回阻害。</p>
+        <p><b>1：</b>最高ランク＋AP1回復　<b>2～5：</b>クリティカル　<b>96～99：</b>ファンブル　<b>100：</b>100ファンブル。</p>
+        <p class="help-note">対抗判定は成功ランクが高い側が勝利。同ランクなら防御側優先。</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.35</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.36</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -156,10 +196,10 @@
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.35 — stable offline rebuild</footer>
+<footer>Character Battle v2.36 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=235"></script>
-<script src="js/character.js?v=235"></script>
-<script src="js/app.js?v=235"></script>
+<script src="js/dice.js?v=236"></script>
+<script src="js/character.js?v=236"></script>
+<script src="js/app.js?v=236"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>
