@@ -21,7 +21,7 @@
 <div id="toast"></div>
 <main class="app">
 <header class="top">
-  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.15</small></h1></div>
+  <div><p class="eyebrow">TRPG CHARACTER DUEL</p><h1>Character Battle <small>v2.17</small></h1></div>
   <div class="net"><span id="net-dot"></span><span id="net-status">オフライン</span></div>
 </header>
 
@@ -86,7 +86,7 @@
     <button id="local-start" class="mode" type="button"><b>同じPCで対戦</b><small>上のPLAYER 1 / PLAYER 2で対戦開始</small></button>
 
     <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,.12)">
-      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.15</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
+      <div style="font-size:11px;opacity:.65;margin-bottom:4px">ONLINE BUILD 2.17</div><div id="online-status" style="font-weight:800;margin-bottom:10px">オンライン：待機中</div>
 
       <input id="host-code" type="text" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="4桁のルームコード（例：1234）" autocomplete="off" style="width:100%;box-sizing:border-box;margin-bottom:8px">
       <button id="host-btn" class="mode" type="button">
@@ -153,10 +153,10 @@
 
   <section class="log-card card"><div class="log-head"><h3>戦闘ログ</h3><button id="leave-btn">ロビーへ</button></div><div id="log"></div></section>
 </section>
-<footer>Character Battle v2.15 — stable offline rebuild</footer>
+<footer>Character Battle v2.17 — stable offline rebuild</footer>
 </main>
 <script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
-<script src="js/dice.js?v=215"></script>
-<script src="js/character.js?v=215"></script>
-<script src="js/app.js?v=215"></script>
+<script src="js/dice.js?v=217"></script>
+<script src="js/character.js?v=217"></script>
+<script src="js/app.js?v=217"></script>
 <div id="result-overlay" class="result-overlay hidden"><div class="result-card"><div class="result-kicker">BATTLE RESULT</div><div id="result-title" class="result-title">VICTORY</div><div id="result-winner" class="result-winner"></div><div id="result-loser" class="result-loser"></div><div class="result-actions"><button id="rematch-btn" class="primary">再戦する</button><button id="result-lobby-btn" class="secondary">ロビーへ戻る</button></div></div></div></body></html>

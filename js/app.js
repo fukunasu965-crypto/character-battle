@@ -133,10 +133,13 @@ function setupConnection(c,hostSide){
     showOnlineResult(msg.winnerIndex,myPlayerIndex);
    }
    else if(msg.type==="rematch-request"&&hostSide){
-    rematch();syncState();sendNet("rematch");
+    startOnlineRematch();
    }
    else if(msg.type==="rematch"&&!hostSide){
     clearResult();
+    $("rematch-btn").disabled=false;
+    $("rematch-btn").textContent="再戦する";
+    if(msg.chars&&msg.battle)applyState(msg);
    }
   }catch(e){console.error(e);toast("通信処理エラー："+e.message)}
  };
@@ -161,6 +164,23 @@ function setupConnection(c,hostSide){
  else conn.on("open",beginHandshake);
 }
 
+function startOnlineRematch(){
+ if(!isHost||!conn?.open)return;
+ // Preserve the original combatants, but rebuild their battle state from full HP/RP/AP.
+ const base1=chars[0]||p1, base2=chars[1]||p2;
+ chars=[fresh(base1),fresh(base2)];
+ battle={
+  turn:chars[0].dex>=chars[1].dex?0:1,
+  round:1,ap:2,pending:null,gameOver:false,
+  log:[{text:"再戦開始！",cls:"special"}]
+ };
+ clearResult();
+ $("battle-screen").classList.remove("hidden");
+ $("battle-screen").classList.add("active");
+ render();
+ sendNet("rematch",{chars,battle});
+ syncState();
+}
 function hostOnline(){
  try{
   const code=String($("host-code").value||"").replace(/\D/g,"").slice(0,4);
@@ -238,7 +258,8 @@ function showResult(winnerIndex,loserIndex,viewerIndex=null){
 }
 function showOnlineResult(winnerIndex,myPlayerIndex){
  showResult(winnerIndex,1-winnerIndex,myPlayerIndex);
- $("rematch-btn").style.display="none";
+ $("rematch-btn").style.display="";
+ $("rematch-btn").textContent="再戦する";
 }
 function rematch(){
  clearResult();
@@ -327,16 +348,34 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.15");
+setOnlineStatus("オンライン：操作できます / BUILD 2.17");
 ["attack","heavy","grapple","guard","observe","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 $("rematch-btn").addEventListener("click",()=>{
  if(netMode==="online"){
-  if(isHost){rematch();syncState();sendNet("rematch")}
-  else{sendNet("rematch-request");toast("再戦をリクエストしました")}
- }else rematch();
+  if(isHost){
+   startOnlineRematch();
+  }else{
+   sendNet("rematch-request");
+   $("rematch-btn").disabled=true;
+   $("rematch-btn").textContent="再戦をリクエスト中…";
+   toast("再戦をリクエストしました");
+  }
+ }else{
+  rematch();
+ }
 });
-$("result-lobby-btn").addEventListener("click",()=>location.reload());
+$("result-lobby-btn").addEventListener("click",()=>{
+ clearResult();
+ if(conn){try{conn.close()}catch(e){}}
+ if(peer){try{peer.destroy()}catch(e){}}
+ conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;
+ battle=null;chars=[];
+ $("battle-screen").classList.add("hidden");$("battle-screen").classList.remove("active");
+ $("lobby").classList.remove("hidden");$("room-box").classList.add("hidden");$("room-display").textContent="";
+ setOnlineStatus("オンライン：操作できます / BUILD 2.17");
+ window.scrollTo({top:0,behavior:"smooth"});
+});
 
 
 $("copy-room").addEventListener("click",()=>toast("ルームコード："+$("room-display").textContent));
