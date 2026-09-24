@@ -22,9 +22,9 @@
       <h3>① キャラクター</h3>
       <div class="tabs"><button class="tab active" data-tab="manual">手入力</button><button class="tab" data-tab="ccfolia">ココフォリアJSON</button></div>
       <div id="manual-panel">
-        <label>名前<input id="char-name" value="山田 太郎"></label>
-        <div class="two"><label>HP<input id="char-hp" type="number" value="14" min="1"></label><label>DEX<input id="char-dex" type="number" value="65"></label></div>
-        <div class="three"><label>攻撃<input id="char-atk" type="number" value="70"></label><label>回避<input id="char-dodge" type="number" value="60"></label><label>応急手当<input id="char-aid" type="number" value="60"></label></div>
+        <label>キャラクター画像<input id="char-image" type="file" accept="image/*"></label><div id="char-image-preview" class="setup-image-preview">NO IMAGE</div><label>名前<input id="char-name" value="山田 太郎"></label>
+        <div class="three"><label>HP<input id="char-hp" type="number" value="14" min="1"></label><label>STR<input id="char-str" type="number" value="65"></label><label>DEX<input id="char-dex" type="number" value="65"></label></div>
+        <div class="three"><label>攻撃<input id="char-atk" type="number" value="70"></label><label>攻撃ダメージ<input id="char-dmg" value="1d4+1"></label><label>回避<input id="char-dodge" type="number" value="60"></label><label>応急手当<input id="char-aid" type="number" value="60"></label></div>
       </div>
       <div id="ccfolia-panel" class="hidden">
         <p class="hint">ココフォリアの「駒をクリップボードにコピー」で得たJSONを貼り付けます。HP・DEX・技能は候補から自動検出し、下で修正できます。</p>
@@ -38,7 +38,7 @@
 
     <article class="card">
       <h3>② 遊び方</h3>
-      <button id="local-start" class="mode"><b>同じPCで対戦</b><small>2人で交互に操作</small></button>
+      <div class="offline-p2"><h4>オフライン PLAYER 2</h4><label>キャラクター画像<input id="p2-image" type="file" accept="image/*"></label><div id="p2-image-preview" class="setup-image-preview">NO IMAGE</div><label>名前<input id="p2-name" value="佐藤 クロエ"></label><div class="three"><label>HP<input id="p2-hp" type="number" value="13"></label><label>STR<input id="p2-str" type="number" value="50"></label><label>DEX<input id="p2-dex" type="number" value="55"></label><label>攻撃<input id="p2-atk" type="number" value="65"></label></div><div class="three"><label>ダメージ<input id="p2-dmg" value="1d6"></label><label>回避<input id="p2-dodge" type="number" value="70"></label><label>応急手当<input id="p2-aid" type="number" value="60"></label></div></div><button id="local-start" class="mode"><b>同じPCで対戦</b><small>PLAYER 1 / PLAYER 2 の入力キャラで対戦</small></button>
       <button id="host-btn" class="mode"><b>オンライン部屋を作る</b><small>あなたが PLAYER 1</small></button>
       <div class="join"><input id="room-code" placeholder="部屋コード"><button id="join-btn">参加</button></div>
       <div id="room-box" class="room hidden"><span>部屋コード</span><strong id="room-display"></strong><button id="copy-room">コピー</button><p id="waiting">相手の参加を待っています…</p></div>
@@ -54,7 +54,7 @@
   </div>
   <section class="fighters">
     <article class="fighter" id="fighter1">
-      <div class="owner">PLAYER 1</div><h2 id="name1"></h2>
+      <div class="owner">PLAYER 1</div><div class="portrait-stage right"><div class="portrait-wrap" id="portrait-wrap1"><img id="portrait1" class="portrait" alt=""><div class="hit-flash"></div></div></div><h2 id="name1"></h2>
       <div class="hp-line"><span>HP</span><strong id="hp1"></strong></div><div class="hpbar"><i id="hpbar1"></i></div>
       <div class="stat-grid" id="stats1"></div><div class="effects" id="effects1"></div>
     </article>
@@ -73,7 +73,7 @@
       <button id="heavy"><b>💥 強攻撃</b><strong class="chance" id="heavy-chance"></strong><small id="heavy-detail"></small></button>
       <button id="guard"><b>🛡 防御</b><strong class="chance">構え</strong><small>被ダメ-2 / 回避・反撃+15</small></button>
       <button id="observe"><b>👁 観察</b><strong class="chance">補助</strong><small>次攻撃+20 / 相手回避-15</small></button>
-      <button id="heal"><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>2 AP</small></button>
+      <button id="grapple"><b>🤼 組み付き</b><strong class="chance" id="grapple-chance"></strong><small id="grapple-detail">命中後 STR対抗</small></button><button id="heal"><b>❤ 応急手当</b><strong class="chance" id="heal-chance"></strong><small>2 AP</small></button>
     </div>
     <div id="reactions" class="commands three hidden">
       <button id="dodge"><b>🛡 回避</b><strong class="chance" id="dodge-chance"></strong><small id="dodge-detail"></small></button>
