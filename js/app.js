@@ -281,36 +281,119 @@ function comStep(){
   if(!battle||!comMode||battle.gameOver)return;
   const c=chars[1],t=chars[0];
 
-  /* COM defender: pending reaction must be resolved even though battle.turn is P1. */
-  if(battle.pending && battle.pending.defender===1){
-   if(c.state.ap>=1&&(c.hp<=Math.ceil(c.maxHp*.55)||c.skills.dodge>=55))return react("dodge");
-   if(c.state.ap>=2&&c.skills.attack>=65&&c.hp>Math.ceil(c.maxHp*.35))return react("counter");
-   return react("take");
+  const P=v=>Math.max(.01,Math.min(.99,v/100));
+  const dmg=c0=>Math.max(1,damageExpected(selected(c0).damage)+damageExpected(c0.db||"0"));
+  const maxD=c0=>Math.max(1,maxDamageExpr(selected(c0).damage)+maxDamageExpr(c0.db||"0"));
+  const atkChance=c0=>clamp(atkSkill(c0)+(c0.state.attackBonus||0)+(c0.state.spirit>=3?10:0)-(c0.state.taunted?(c0.state.tauntPenalty||10):0));
+  const dodgeChance=(def,obs=0)=>P(dodgeSkill(def,obs));
+  const counterChance=def=>P(counterSkill(def));
+  const cloneState=o=>JSON.parse(JSON.stringify(o));
+
+  /* Lightweight minimax model:
+     COM maximizes; human is assumed to choose the strongest reply.
+     Search horizon is two full plies (COM -> human -> COM continuation),
+     with beam pruning so mobile browsers remain responsive. */
+  const evalState=(me,op)=>{
+   if(op.hp<=0)return 100000;
+   if(me.hp<=0)return -100000;
+   let v=(me.hp-op.hp)*34+(me.state.ap-op.state.ap)*15+(me.mp-op.mp)*2;
+   v+=(me.state.attackBonus||0)*1.1-(op.state.attackBonus||0)*1.1;
+   v+=(me.state.intimidated?28:0)-(op.state.intimidated?28:0);
+   v+=(me.state.spirit||0)*10-(op.state.spirit||0)*10;
+   v+=(op.state.taunted?20:0)-(me.state.taunted?20:0);
+   return v;
+  };
+  const reactionFactor=(att,def,observed=0)=>{
+   const take=1;
+   const dc=dodgeChance(def,observed);
+   const cc=counterChance(def);
+   // Human/COM defender is assumed to choose its best legal prevention.
+   let prevent=0;
+   if(def.state.ap>=1)prevent=Math.max(prevent,dc);
+   if(def.state.ap>=2)prevent=Math.max(prevent,cc*.92);
+   return Math.max(.05,take-prevent*.72);
+  };
+  const simulateAction=(actor,target,id)=>{
+   const a=cloneState(actor),b=cloneState(target);
+   let value=0;
+   const ac=atkChance(a),base=dmg(a),obs=a.state.analyzedDodgePenalty||0;
+   const land=(skill)=>P(skill)*reactionFactor(a,b,obs);
+   if(id==="attack"&&a.state.ap>=1){
+    a.state.ap-=1; const p=land(ac),d=base+(a.state.spirit||0)+(a.state.taunted?2:0);
+    b.hp=Math.max(0,b.hp-p*d); value+=p*d*22+(d>=target.hp?p*8000:0); a.state.spirit=0;a.state.attackBonus=0;a.state.analyzedDodgePenalty=0;a.state.taunted=false;
+   }else if(id==="heavy"&&a.state.ap>=2){
+    a.state.ap-=2; const p=land(clamp(ac-5)),d=base+2.5+(a.state.spirit||0)+(a.state.taunted?2:0);
+    b.hp=Math.max(0,b.hp-p*d); value+=p*d*22+(d>=target.hp?p*8000:0); a.state.spirit=0;a.state.attackBonus=0;a.state.analyzedDodgePenalty=0;a.state.taunted=false;
+   }else if(id==="grapple"&&a.state.ap>=1&&grapple(a)){
+    a.state.ap-=1;const g=grapple(a),pHit=land(g.skill),pStr=P(50+(a.str-b.str)*5),p=pHit*(.05+.95*pStr),d=Math.max(1,damageExpected(g.damage)+damageExpected(a.db||"0"));
+    b.hp=Math.max(0,b.hp-p*d);value+=p*(d*22+32);b.state.nextApPenalty=p>.5?1:b.state.nextApPenalty;
+   }else if(id==="heal"&&a.state.ap>=2&&a.hp<a.maxHp){
+    a.state.ap-=2;const p=P(a.skills.firstAid),gain=Math.min(a.maxHp-a.hp,2)*p;a.hp+=gain;value+=gain*24;
+   }else if(id==="analyze"&&!a.state.attackBonus){
+    const p=P(specialSkill(a,"int"));a.state.attackBonus=20*p;a.state.analyzedDodgePenalty=15*p;value+=p*12;
+   }else if(id==="taunt"&&!b.state.taunted){
+    const p=P(specialSkill(a,"app"));if(p>=.5){b.state.taunted=true;b.state.tauntPenalty=10}value+=p*18;
+   }else if(id==="intimidate"&&a.mp>=2&&!a.state.intimidated){
+    const p=P(specialSkill(a,"pow"));a.mp-=2;if(p>=.5)a.state.intimidated=.5;value+=p*dmg(b)*10;
+   }else return null;
+   return {a,b,value};
+  };
+  const legal=(a,b)=>{
+   const x=[];
+   if(a.state.ap>=1)x.push("attack");
+   if(a.state.ap>=2)x.push("heavy");
+   if(a.state.ap>=1&&grapple(a))x.push("grapple");
+   if(a.state.ap>=2&&a.hp<a.maxHp)x.push("heal");
+   if(!a.state.attackBonus)x.push("analyze");
+   if(!b.state.taunted)x.push("taunt");
+   if(a.mp>=2&&!a.state.intimidated)x.push("intimidate");
+   if(a.state.taunted)return x.filter(v=>["attack","heavy","grapple"].includes(v));
+   return x;
+  };
+  const bestContinuation=(me,op)=>{
+   let best=-Infinity;
+   for(const id of legal(me,op)){
+    const q=simulateAction(me,op,id);if(!q)continue;
+    best=Math.max(best,q.value+evalState(q.a,q.b)*.16);
+   }
+   return Number.isFinite(best)?best:evalState(me,op)*.16;
+  };
+  const minimaxScore=id=>{
+   const first=simulateAction(c,t,id);if(!first)return -Infinity;
+   if(first.b.hp<=0)return 100000+first.value;
+   // Approximate next-turn AP recovery before opponent reply.
+   first.b.state.ap=(first.b.state.ap||0)+1;
+   let worst=Infinity;
+   const replies=legal(first.b,first.a);
+   for(const rid of replies){
+    const r=simulateAction(first.b,first.a,rid);if(!r)continue;
+    if(r.b.hp<=0){worst=Math.min(worst,-100000);continue;}
+    r.b.state.ap=(r.b.state.ap||0)+1;
+    const continuation=bestContinuation(r.b,r.a); // COM is r.b after human reply.
+    const branch=first.value-r.value+evalState(r.b,r.a)*.35+continuation;
+    worst=Math.min(worst,branch);
+   }
+   if(!Number.isFinite(worst))worst=first.value+evalState(first.a,first.b);
+   return worst;
+  };
+
+  /* Reaction minimax: preserve HP when lethal, otherwise price AP against expected prevented damage. */
+  if(battle.pending&&battle.pending.defender===1){
+   const p=battle.pending;
+   const inc=Math.max(1,damageExpected(p.weapon.damage)+(p.type==="heavy"?2.5:0)+(p.spirit||0)+(p.tauntDamage||0));
+   const choices=[{id:"take",u:-inc*30+(p.type==="heavy"?0:18)}];
+   if(c.state.ap>=1){const q=dodgeChance(c,p.observed);choices.push({id:"dodge",u:q*inc*30-18+(inc>=c.hp?q*9000:0)});}
+   if(c.state.ap>=2){const q=counterChance(c);choices.push({id:"counter",u:q*(inc*30+2*24)-38+(inc>=c.hp?q*9000:0)});}
+   choices.sort((a,b)=>b.u-a.u);
+   return react(choices[0].id);
   }
 
-  /* COM only chooses an active action on its own turn. */
   if(battle.pending||battle.turn!==1)return;
-  const ap=c.state.ap,hpRate=c.hp/c.maxHp,targetHp=t.hp/t.maxHp;
-  const canIntimidate=c.mp>=2&&!t.state.intimidated,canTaunt=!t.state.taunted;
-
-  if(c.state.taunted){
-   if(ap>=2&&(targetHp<=.45||Math.random()<.60))return action("heavy");
-   if(ap>=1)return action("attack");
-   c.state.taunted=false;log("COMは攻撃できず、挑発状態が解除された。");return action("analyze");
-  }
-  if(ap>=2&&hpRate<=.50&&c.hp<c.maxHp&&Math.random()<.82)return action("heal");
-  if(canIntimidate&&(t.state.ap>=1||t.skills.attack>=55)&&Math.random()<.42)return action("intimidate");
-  if(canTaunt&&ap<=1&&Math.random()<.30)return action("taunt");
-  if(!c.state.attackBonus&&(t.skills.dodge>=45||c.skills.attack<65)&&Math.random()<.38)return action("analyze");
-  if(ap>=1&&grapple(c)&&grapple(c).skill>=50&&c.str>=t.str&&!t.state.nextApPenalty&&Math.random()<.38)return action("grapple");
-  if(canIntimidate&&Math.random()<.28)return action("intimidate");
-  if(canTaunt&&Math.random()<.24)return action("taunt");
-  if(ap>=2&&(c.state.attackBonus||targetHp<=.5||ap>=3)&&Math.random()<.82)return action("heavy");
-  if(ap>=1)return action("attack");
-  if(canIntimidate)return action("intimidate");
-  if(canTaunt)return action("taunt");
-  return action("analyze");
- },450);
+  const actions=legal(c,t);
+  if(!actions.length)return action("analyze");
+  const scored=actions.map(id=>({id,score:minimaxScore(id)})).sort((a,b)=>b.score-a.score);
+  return action(scored[0].id);
+ },320);
 }
 function animate(i,type){const w=$("portrait-wrap"+(i+1));if(!w)return;w.className=w.className.replace(/\banim-\S+/g,"").trim();void w.offsetWidth;w.classList.add("anim-"+type);setTimeout(()=>w.classList.remove("anim-"+type),800)}
 function finishAction(){if(!battle.gameOver&&!battle.pending)endTurn();render()}
@@ -715,7 +798,7 @@ $("host-code").addEventListener("input",e=>e.target.value=String(e.target.value|
 $("join-code").addEventListener("input",e=>e.target.value=String(e.target.value||"").replace(/\D/g,"").slice(0,4));
 $("host-btn").addEventListener("click",hostOnline);
 $("join-btn").addEventListener("click",joinOnline);
-setOnlineStatus("オンライン：操作できます / BUILD 2.67");
+setOnlineStatus("オンライン：操作できます / BUILD 2.70");
 ["attack","heavy","grapple","analyze","taunt","intimidate","heal","dodge","counter","take"].forEach(id=>$(id).addEventListener("click",()=>action(id)));
 $("leave-btn").addEventListener("click",()=>location.reload());
 
@@ -748,7 +831,7 @@ function resultReturnToLobby(ev){
  conn=null;peer=null;netMode="local";isHost=false;myPlayerIndex=0;comMode=false;comThinking=false;
  try{oldConn?.close()}catch(e){console.warn(e)}
  try{if(oldPeer&&!oldPeer.destroyed)oldPeer.destroy()}catch(e){console.warn(e)}
- try{setOnlineStatus("オンライン：操作できます / BUILD 2.67")}catch(e){}
+ try{setOnlineStatus("オンライン：操作できます / BUILD 2.70")}catch(e){}
  window.scrollTo(0,0);
  setTimeout(()=>{lobbyReturning=false},300);
 }
